@@ -8,6 +8,12 @@ var App = (function () {
   var currentView = 'list';
   var editingId = null;
   var currentImageData = null;
+  var deferredPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredPrompt = e;
+  });
 
   // --- Init ---
 
@@ -120,6 +126,16 @@ var App = (function () {
       html += '</div>';
     }
 
+    // Install app button
+    html += '<div class="install-section">';
+    html += '<button class="btn-install" id="btn-install">📲 ' + t('installApp') + '</button>';
+    html += '</div>';
+
+    // Privacy notice
+    html += '<div class="privacy-notice">';
+    html += '<p>🔒 ' + t('privacyNotice') + '</p>';
+    html += '</div>';
+
     html += '<button class="fab" id="btn-add">+</button>';
     html += '</div>';
     return html;
@@ -129,6 +145,20 @@ var App = (function () {
     document.getElementById('btn-add').addEventListener('click', function () { showView('form'); });
     document.getElementById('btn-settings').addEventListener('click', function () { showView('settings'); });
     document.getElementById('btn-theme').addEventListener('click', toggleTheme);
+
+    document.getElementById('btn-install').addEventListener('click', function () {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function () { deferredPrompt = null; });
+      } else {
+        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+          showToast(I18n.t('installIOS'));
+        } else {
+          showToast(I18n.t('installAndroid'));
+        }
+      }
+    });
 
     document.getElementById('btn-lang').addEventListener('click', function () {
       var settings = Storage.getSettings();
@@ -340,8 +370,6 @@ var App = (function () {
         lng: lng,
         mapsUrl: 'https://maps.google.com/?q=' + lat + ',' + lng,
         doorNumber: document.getElementById('f-doorNumber').value.trim(),
-        apartment: document.getElementById('f-doorNumber').value.trim(),
-        apartmentAr: document.getElementById('f-doorNumber').value.trim(),
         instructions: '',
         instructionsAr: '',
         image: currentImageData,

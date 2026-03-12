@@ -20,12 +20,8 @@ var Share = (function () {
     var message = settings.greeting + '\n\n';
     message += '📍 Location / الموقع:\n' + loc.mapsUrl + '\n\n';
 
-    if (loc.apartment || loc.apartmentAr) {
-      message += '🏠 Apartment / رقم الشقة:\n';
-      if (loc.apartment) message += loc.apartment;
-      if (loc.apartment && loc.apartmentAr) message += ' / ';
-      if (loc.apartmentAr) message += loc.apartmentAr;
-      message += '\n\n';
+    if (loc.doorNumber) {
+      message += '🏠 Door/Apt / رقم الباب:\n' + loc.doorNumber + '\n\n';
     }
 
     if (loc.instructions || loc.instructionsAr) {

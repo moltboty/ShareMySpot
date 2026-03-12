@@ -639,6 +639,48 @@ body {
   transform: translateX(-50%) translateY(0);
 }
 
+/* --- Install Button --- */
+.install-section {
+  padding: 16px 16px 0;
+}
+
+.btn-install {
+  width: 100%;
+  padding: 14px;
+  border: 2px dashed var(--wa-green);
+  border-radius: var(--radius);
+  background: rgba(37, 211, 102, 0.06);
+  color: var(--wa-green);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--transition);
+}
+
+[data-theme="dark"] .btn-install {
+  background: rgba(37, 211, 102, 0.08);
+}
+
+.btn-install:active {
+  background: rgba(37, 211, 102, 0.15);
+}
+
+/* --- Privacy Notice --- */
+.privacy-notice {
+  padding: 16px 20px 100px;
+  text-align: center;
+}
+
+.privacy-notice p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
 /* --- RTL --- */
 [dir="rtl"] .card-header,
 [dir="rtl"] .header-top {

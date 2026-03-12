@@ -51,7 +51,11 @@ var I18n = (function () {
       tapToAddPhoto: 'Tap to add photo',
       mapLocation: 'Map Location',
       doorSection: 'Door / Apartment / Villa',
-      locationSaved: 'Location saved'
+      locationSaved: 'Location saved',
+      installApp: 'Add App to Home Screen',
+      installIOS: 'Tap the Share button, then "Add to Home Screen"',
+      installAndroid: 'Tap the menu (⋮), then "Add to Home Screen"',
+      privacyNotice: 'Your data stays on your device. Nothing is uploaded to any server — all locations and photos are stored locally on your phone.'
     },
     ar: {
       appName: 'شارك موقعي',
@@ -98,7 +102,11 @@ var I18n = (function () {
       tapToAddPhoto: 'اضغط لإضافة صورة',
       mapLocation: 'موقع الخريطة',
       doorSection: 'رقم الباب / الشقة / الفيلا',
-      locationSaved: 'تم حفظ الموقع'
+      locationSaved: 'تم حفظ الموقع',
+      installApp: 'أضف التطبيق إلى الشاشة الرئيسية',
+      installIOS: 'اضغط زر المشاركة، ثم "إضافة إلى الشاشة الرئيسية"',
+      installAndroid: 'اضغط القائمة (⋮)، ثم "إضافة إلى الشاشة الرئيسية"',
+      privacyNotice: 'بياناتك تبقى على جهازك. لا يتم رفع أي شيء إلى أي خادم — جميع المواقع والصور محفوظة محلياً على هاتفك.'
     }
   };
 
