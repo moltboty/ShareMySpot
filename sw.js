@@ -2,18 +2,18 @@
 // ShareMySpot — Service Worker
 // ========================================
 
-var CACHE_NAME = 'sharemyspot-v1';
+var CACHE_NAME = 'sharemyspot-v2';
 var ASSETS = [
-  '/',
-  '/index.html',
-  '/css/style.css',
-  '/js/i18n.js',
-  '/js/storage.js',
-  '/js/share.js',
-  '/js/app.js',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  './',
+  './index.html',
+  './css/style.css',
+  './js/i18n.js',
+  './js/storage.js',
+  './js/share.js',
+  './js/app.js',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 // Install — cache all assets
