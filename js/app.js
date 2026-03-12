@@ -9,6 +9,8 @@ var App = (function () {
   var editingId = null;
   var currentImageData = null;
   var deferredPrompt = null;
+  var wizardStep = 0;
+  var wizardData = {};
 
   window.addEventListener('beforeinstallprompt', function (e) {
     e.preventDefault();
@@ -75,6 +77,7 @@ var App = (function () {
     switch (currentView) {
       case 'list': app.innerHTML = renderList(); bindListEvents(); break;
       case 'form': app.innerHTML = renderForm(); bindFormEvents(); break;
+      case 'wizard': app.innerHTML = renderWizard(); bindWizardEvents(); break;
       case 'settings': app.innerHTML = renderSettings(); bindSettingsEvents(); break;
     }
   }
@@ -142,23 +145,17 @@ var App = (function () {
   }
 
   function bindListEvents() {
-    document.getElementById('btn-add').addEventListener('click', function () { showView('form'); });
+    document.getElementById('btn-add').addEventListener('click', function () {
+      wizardStep = 0;
+      wizardData = {};
+      currentImageData = null;
+      currentView = 'wizard';
+      renderCurrentView();
+    });
     document.getElementById('btn-settings').addEventListener('click', function () { showView('settings'); });
     document.getElementById('btn-theme').addEventListener('click', toggleTheme);
 
-    document.getElementById('btn-install').addEventListener('click', function () {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(function () { deferredPrompt = null; });
-      } else {
-        var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        if (isIOS) {
-          showToast(I18n.t('installIOS'));
-        } else {
-          showToast(I18n.t('installAndroid'));
-        }
-      }
-    });
+    document.getElementById('btn-install').addEventListener('click', handleInstallClick);
 
     document.getElementById('btn-lang').addEventListener('click', function () {
       var settings = Storage.getSettings();
@@ -193,18 +190,356 @@ var App = (function () {
     }
   }
 
-  // --- Form View ---
+  // --- Install Handling ---
+
+  function handleInstallClick() {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function () { deferredPrompt = null; });
+    } else {
+      showInstallModal();
+    }
+  }
+
+  function showInstallModal() {
+    var existing = document.querySelector('.install-modal-overlay');
+    if (existing) existing.remove();
+
+    var t = I18n.t;
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    var overlay = document.createElement('div');
+    overlay.className = 'install-modal-overlay';
+
+    var html = '<div class="install-modal">';
+    html += '<div class="install-modal-header">';
+    html += '<span class="install-modal-icon">📲</span>';
+    html += '<h2>' + t('installApp') + '</h2>';
+    html += '</div>';
+    html += '<div class="install-modal-body">';
+
+    if (isIOS) {
+      html += '<div class="install-step"><span class="step-num">1</span><p>' + t('installIOSStep1') + '</p></div>';
+      html += '<div class="install-step"><span class="step-num">2</span><p>' + t('installIOSStep2') + '</p></div>';
+      html += '<div class="install-step"><span class="step-num">3</span><p>' + t('installIOSStep3') + '</p></div>';
+    } else {
+      html += '<div class="install-step"><span class="step-num">1</span><p>' + t('installAndroidStep1') + '</p></div>';
+      html += '<div class="install-step"><span class="step-num">2</span><p>' + t('installAndroidStep2') + '</p></div>';
+    }
+
+    html += '</div>';
+    html += '<button class="install-modal-close" id="install-modal-close">' + t('gotIt') + '</button>';
+    html += '</div>';
+
+    overlay.innerHTML = html;
+    document.body.appendChild(overlay);
+    setTimeout(function () { overlay.classList.add('show'); }, 10);
+
+    document.getElementById('install-modal-close').addEventListener('click', function () {
+      overlay.classList.remove('show');
+      setTimeout(function () { overlay.remove(); }, 300);
+    });
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) {
+        overlay.classList.remove('show');
+        setTimeout(function () { overlay.remove(); }, 300);
+      }
+    });
+  }
+
+  // --- Wizard View ---
+
+  var WIZARD_STEPS = ['name', 'gps', 'photo', 'door', 'install'];
+
+  function renderWizard() {
+    var t = I18n.t;
+    var step = WIZARD_STEPS[wizardStep];
+    var totalSteps = WIZARD_STEPS.length;
+
+    var html = '<div class="view-wizard">';
+    html += '<header class="app-header">';
+    html += '<button class="btn-back" id="wiz-back">←</button>';
+    html += '<h1 class="app-title">' + t('addLocation') + '</h1>';
+    html += '<span class="wiz-counter">' + (wizardStep + 1) + '/' + totalSteps + '</span>';
+    html += '</header>';
+
+    // Progress bar
+    html += '<div class="wiz-progress"><div class="wiz-progress-fill" style="width:' + (((wizardStep + 1) / totalSteps) * 100) + '%"></div></div>';
+
+    html += '<div class="wiz-content">';
+
+    if (step === 'name') {
+      html += '<div class="wiz-step">';
+      html += '<div class="wiz-icon">📝</div>';
+      html += '<h2 class="wiz-title">' + t('wizNameTitle') + '</h2>';
+      html += '<p class="wiz-subtitle">' + t('wizNameSub') + '</p>';
+      html += '<div class="form-group">';
+      html += bilingualLabel('Location Name', 'اسم الموقع', true);
+      html += '<input type="text" id="wiz-name" placeholder="e.g. Home / البيت" value="' + escapeAttr(wizardData.name || '') + '" autofocus>';
+      html += '</div>';
+      html += '</div>';
+    }
+
+    if (step === 'gps') {
+      html += '<div class="wiz-step">';
+      html += '<div class="wiz-icon">📍</div>';
+      html += '<h2 class="wiz-title">' + t('wizGpsTitle') + '</h2>';
+      html += '<p class="wiz-subtitle">' + t('wizGpsSub') + '</p>';
+      html += '<button type="button" class="btn-gps wiz-gps-btn" id="wiz-gps">📍 ' + t('useMyLocation') + '</button>';
+      html += '<input type="hidden" id="wiz-lat" value="' + (wizardData.lat || '') + '">';
+      html += '<input type="hidden" id="wiz-lng" value="' + (wizardData.lng || '') + '">';
+      html += '<p class="gps-preview" id="wiz-gps-preview"></p>';
+      html += '</div>';
+    }
+
+    if (step === 'photo') {
+      html += '<div class="wiz-step">';
+      html += '<div class="wiz-icon">📷</div>';
+      html += '<h2 class="wiz-title">' + t('wizPhotoTitle') + '</h2>';
+      html += '<p class="wiz-subtitle">' + t('wizPhotoSub') + '</p>';
+      html += '<input type="file" id="wiz-image-input" accept="image/*" style="display:none">';
+      if (currentImageData) {
+        html += '<div class="image-preview" id="wiz-image-preview">';
+        html += '<img src="' + currentImageData + '" alt="">';
+        html += '<div class="image-actions">';
+        html += '<button type="button" class="btn-sm" id="wiz-change-photo">' + t('changePhoto') + '</button>';
+        html += '<button type="button" class="btn-sm btn-danger" id="wiz-remove-photo">' + t('removePhoto') + '</button>';
+        html += '</div></div>';
+      } else {
+        html += '<button type="button" class="btn-upload wiz-upload-btn" id="wiz-upload">📷 ' + t('tapToAddPhoto') + '</button>';
+        html += '<div class="image-preview" id="wiz-image-preview" style="display:none">';
+        html += '<img src="" alt="">';
+        html += '<div class="image-actions">';
+        html += '<button type="button" class="btn-sm" id="wiz-change-photo">' + t('changePhoto') + '</button>';
+        html += '<button type="button" class="btn-sm btn-danger" id="wiz-remove-photo">' + t('removePhoto') + '</button>';
+        html += '</div></div>';
+      }
+      html += '</div>';
+    }
+
+    if (step === 'door') {
+      html += '<div class="wiz-step">';
+      html += '<div class="wiz-icon">🏠</div>';
+      html += '<h2 class="wiz-title">' + t('wizDoorTitle') + '</h2>';
+      html += '<p class="wiz-subtitle">' + t('wizDoorSub') + '</p>';
+      html += '<div class="form-group">';
+      html += bilingualLabel('Door / Apartment / Villa No.', 'رقم الباب / الشقة / الفيلا', false);
+      html += '<input type="text" id="wiz-door" placeholder="e.g. Villa 12 / فيلا 12" value="' + escapeAttr(wizardData.doorNumber || '') + '">';
+      html += '</div>';
+      html += '</div>';
+    }
+
+    if (step === 'install') {
+      html += '<div class="wiz-step wiz-step-final">';
+      html += '<div class="wiz-icon">✅</div>';
+      html += '<h2 class="wiz-title">' + t('wizInstallTitle') + '</h2>';
+      html += '<p class="wiz-subtitle">' + t('wizInstallSub') + '</p>';
+      html += '<button type="button" class="btn-install wiz-install-btn" id="wiz-install-btn">📲 ' + t('installApp') + '</button>';
+      html += '<button type="button" class="btn-skip" id="wiz-skip-install">' + t('wizSkip') + '</button>';
+      html += '</div>';
+    }
+
+    html += '</div>';
+
+    // Bottom buttons
+    html += '<div class="wiz-buttons">';
+    if (step === 'install') {
+      html += '<button class="btn-save wiz-btn-save" id="wiz-save">💾 ' + t('wizSaveLocation') + '</button>';
+    } else {
+      html += '<button class="btn-save wiz-btn-next" id="wiz-next">' + t('wizNext') + ' →</button>';
+    }
+    if (step === 'photo' || step === 'door') {
+      html += '<button class="btn-skip wiz-btn-skip" id="wiz-skip">' + t('wizSkip') + '</button>';
+    }
+    html += '</div>';
+
+    html += '</div>';
+    return html;
+  }
+
+  function bindWizardEvents() {
+    var step = WIZARD_STEPS[wizardStep];
+    var t = I18n.t;
+
+    // Back button
+    document.getElementById('wiz-back').addEventListener('click', function () {
+      if (wizardStep === 0) {
+        showView('list');
+      } else {
+        saveCurrentWizardStep();
+        wizardStep--;
+        renderCurrentView();
+      }
+    });
+
+    // Step-specific bindings
+    if (step === 'gps') {
+      var wLat = document.getElementById('wiz-lat');
+      var wLng = document.getElementById('wiz-lng');
+      var preview = document.getElementById('wiz-gps-preview');
+
+      if (wLat.value && wLng.value) {
+        preview.textContent = '✅ ' + t('locationSaved') + ' — ' + parseFloat(wLat.value).toFixed(4) + ', ' + parseFloat(wLng.value).toFixed(4);
+      }
+
+      document.getElementById('wiz-gps').addEventListener('click', function () {
+        var btn = this;
+        if (!navigator.geolocation) {
+          showToast(t('locationError'));
+          return;
+        }
+        btn.textContent = '⏳ ' + t('locating');
+        btn.disabled = true;
+        navigator.geolocation.getCurrentPosition(
+          function (pos) {
+            wLat.value = pos.coords.latitude.toFixed(6);
+            wLng.value = pos.coords.longitude.toFixed(6);
+            wizardData.lat = wLat.value;
+            wizardData.lng = wLng.value;
+            preview.textContent = '✅ ' + t('locationSaved') + ' — ' + parseFloat(wLat.value).toFixed(4) + ', ' + parseFloat(wLng.value).toFixed(4);
+            btn.textContent = '✅ ' + t('locationSaved');
+            btn.disabled = false;
+          },
+          function () {
+            showToast(t('locationError'));
+            btn.textContent = '📍 ' + t('useMyLocation');
+            btn.disabled = false;
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      });
+    }
+
+    if (step === 'photo') {
+      var fImage = document.getElementById('wiz-image-input');
+      var btnUpload = document.getElementById('wiz-upload');
+      var btnChange = document.getElementById('wiz-change-photo');
+      var btnRemove = document.getElementById('wiz-remove-photo');
+      var imagePreview = document.getElementById('wiz-image-preview');
+
+      function triggerUpload() { fImage.click(); }
+      if (btnUpload) btnUpload.addEventListener('click', triggerUpload);
+      if (btnChange) btnChange.addEventListener('click', triggerUpload);
+      if (btnRemove) {
+        btnRemove.addEventListener('click', function () {
+          currentImageData = null;
+          fImage.value = '';
+          imagePreview.style.display = 'none';
+          if (btnUpload) btnUpload.style.display = '';
+        });
+      }
+
+      fImage.addEventListener('change', function () {
+        if (this.files && this.files[0]) {
+          Share.handleImageUpload(this.files[0]).then(function (dataUrl) {
+            currentImageData = dataUrl;
+            imagePreview.querySelector('img').src = dataUrl;
+            imagePreview.style.display = '';
+            if (btnUpload) btnUpload.style.display = 'none';
+          });
+        }
+      });
+    }
+
+    if (step === 'install') {
+      document.getElementById('wiz-install-btn').addEventListener('click', handleInstallClick);
+      document.getElementById('wiz-skip-install').addEventListener('click', function () {
+        // do nothing, just visual
+      });
+    }
+
+    // Next button
+    var btnNext = document.getElementById('wiz-next');
+    if (btnNext) {
+      btnNext.addEventListener('click', function () {
+        if (!validateWizardStep()) return;
+        saveCurrentWizardStep();
+        wizardStep++;
+        renderCurrentView();
+      });
+    }
+
+    // Skip button
+    var btnSkip = document.getElementById('wiz-skip');
+    if (btnSkip) {
+      btnSkip.addEventListener('click', function () {
+        saveCurrentWizardStep();
+        wizardStep++;
+        renderCurrentView();
+      });
+    }
+
+    // Save button (final step)
+    var btnSave = document.getElementById('wiz-save');
+    if (btnSave) {
+      btnSave.addEventListener('click', function () {
+        var lat = parseFloat(wizardData.lat);
+        var lng = parseFloat(wizardData.lng);
+
+        var data = {
+          name: wizardData.name,
+          nameAr: wizardData.name,
+          lat: lat,
+          lng: lng,
+          mapsUrl: 'https://maps.google.com/?q=' + lat + ',' + lng,
+          doorNumber: wizardData.doorNumber || '',
+          instructions: '',
+          instructionsAr: '',
+          image: currentImageData,
+          imageName: currentImageData ? 'location.jpg' : null
+        };
+
+        Storage.addLocation(data);
+        showView('list');
+        showToast(t('locationSaved'));
+      });
+    }
+  }
+
+  function saveCurrentWizardStep() {
+    var step = WIZARD_STEPS[wizardStep];
+    if (step === 'name') {
+      var nameEl = document.getElementById('wiz-name');
+      if (nameEl) wizardData.name = nameEl.value.trim();
+    }
+    if (step === 'gps') {
+      var latEl = document.getElementById('wiz-lat');
+      var lngEl = document.getElementById('wiz-lng');
+      if (latEl) wizardData.lat = latEl.value;
+      if (lngEl) wizardData.lng = lngEl.value;
+    }
+    if (step === 'door') {
+      var doorEl = document.getElementById('wiz-door');
+      if (doorEl) wizardData.doorNumber = doorEl.value.trim();
+    }
+  }
+
+  function validateWizardStep() {
+    var step = WIZARD_STEPS[wizardStep];
+    var t = I18n.t;
+
+    if (step === 'name') {
+      var name = document.getElementById('wiz-name').value.trim();
+      if (!name) { showToast(t('required')); return false; }
+    }
+    if (step === 'gps') {
+      var lat = document.getElementById('wiz-lat').value;
+      var lng = document.getElementById('wiz-lng').value;
+      if (!lat || !lng) { showToast(t('gpsRequired')); return false; }
+    }
+    return true;
+  }
+
+  // --- Form View (for editing) ---
 
   function renderForm() {
     var t = I18n.t;
-    var isEdit = !!editingId;
-    var loc = isEdit ? Storage.getLocationById(editingId) : {};
+    var loc = Storage.getLocationById(editingId) || {};
     currentImageData = (loc && loc.image) || null;
 
     var html = '<div class="view-form">';
     html += '<header class="app-header">';
     html += '<button class="btn-back" id="btn-back">←</button>';
-    html += '<h1 class="app-title">' + (isEdit ? t('editLocation') : t('addLocation')) + '</h1>';
+    html += '<h1 class="app-title">' + t('editLocation') + '</h1>';
     html += '</header>';
 
     html += '<form id="location-form" class="form">';
@@ -376,12 +711,7 @@ var App = (function () {
         imageName: currentImageData ? 'location.jpg' : null
       };
 
-      if (editingId) {
-        Storage.updateLocation(editingId, data);
-      } else {
-        Storage.addLocation(data);
-      }
-
+      Storage.updateLocation(editingId, data);
       showView('list');
     });
   }

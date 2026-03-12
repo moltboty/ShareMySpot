@@ -681,6 +681,252 @@ body {
   margin: 0 auto;
 }
 
+/* --- Wizard --- */
+.view-wizard {
+  min-height: 100vh;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.wiz-counter {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-left: auto;
+}
+
+[dir="rtl"] .wiz-counter {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.wiz-progress {
+  height: 4px;
+  background: var(--border);
+}
+
+.wiz-progress-fill {
+  height: 100%;
+  background: var(--wa-green);
+  transition: width 0.4s ease;
+  border-radius: 0 2px 2px 0;
+}
+
+.wiz-content {
+  flex: 1;
+  padding: 32px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wiz-step {
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.wiz-icon {
+  font-size: 3rem;
+  margin-bottom: 4px;
+}
+
+.wiz-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.wiz-subtitle {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.wiz-step .form-group {
+  width: 100%;
+  text-align: left;
+}
+
+[dir="rtl"] .wiz-step .form-group {
+  text-align: right;
+}
+
+.wiz-gps-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 1rem;
+}
+
+.wiz-upload-btn {
+  width: 100%;
+  padding: 40px 28px;
+}
+
+.wiz-step .image-preview {
+  width: 100%;
+}
+
+.wiz-buttons {
+  padding: 16px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wiz-btn-next,
+.wiz-btn-save {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--wa-green);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.wiz-btn-next:active,
+.wiz-btn-save:active {
+  background: var(--wa-green-dark);
+  transform: scale(0.98);
+}
+
+.btn-skip,
+.wiz-btn-skip {
+  padding: 10px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+
+.btn-skip:active,
+.wiz-btn-skip:active {
+  color: var(--text-secondary);
+}
+
+.wiz-install-btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* --- Install Modal --- */
+.install-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.install-modal-overlay.show {
+  opacity: 1;
+}
+
+.install-modal {
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 480px;
+  padding: 28px 24px 32px;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+
+.install-modal-overlay.show .install-modal {
+  transform: translateY(0);
+}
+
+.install-modal-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.install-modal-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.install-modal-header h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.install-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.install-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  text-align: left;
+}
+
+[dir="rtl"] .install-step {
+  text-align: right;
+}
+
+.step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--wa-green);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.install-step p {
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.5;
+  padding-top: 3px;
+}
+
+.install-modal-close {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--wa-green);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.install-modal-close:active {
+  background: var(--wa-green-dark);
+}
+
 /* --- RTL --- */
 [dir="rtl"] .card-header,
 [dir="rtl"] .header-top {
