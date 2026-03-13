@@ -95,7 +95,18 @@ var Share = (function () {
     var message = buildMessage(loc);
     try {
       await navigator.clipboard.writeText(message);
-      App.showToast(I18n.t('copied'));
+      if (loc.image) {
+        // Download the photo so user can attach it in WhatsApp
+        var a = document.createElement('a');
+        a.href = loc.image;
+        a.download = (loc.name || 'location') + '.jpg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        App.showToast(I18n.t('copiedWithPhoto'));
+      } else {
+        App.showToast(I18n.t('copied'));
+      }
     } catch (err) {
       App.showToast(I18n.t('shareError'));
     }
