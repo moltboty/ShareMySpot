@@ -108,6 +108,10 @@ var App = (function () {
         var name = loc.name;
 
         html += '<div class="location-card">';
+        // Map preview
+        if (loc.lat && loc.lng) {
+          html += '<div class="card-map" id="card-map-' + loc.id + '" data-lat="' + loc.lat + '" data-lng="' + loc.lng + '"></div>';
+        }
         if (loc.image) {
           html += '<div class="card-thumb"><img src="' + loc.image + '" alt=""></div>';
         }
@@ -144,7 +148,29 @@ var App = (function () {
     return html;
   }
 
+  function initCardMaps() {
+    var mapEls = document.querySelectorAll('.card-map');
+    for (var i = 0; i < mapEls.length; i++) {
+      var el = mapEls[i];
+      var lat = parseFloat(el.getAttribute('data-lat'));
+      var lng = parseFloat(el.getAttribute('data-lng'));
+      if (!isNaN(lat) && !isNaN(lng)) {
+        var map = L.map(el, {
+          zoomControl: false,
+          attributionControl: false,
+          dragging: false,
+          scrollWheelZoom: false,
+          doubleClickZoom: false,
+          touchZoom: false
+        }).setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        L.marker([lat, lng]).addTo(map);
+      }
+    }
+  }
+
   function bindListEvents() {
+    initCardMaps();
     document.getElementById('btn-add').addEventListener('click', function () {
       wizardStep = 0;
       wizardData = {};
@@ -287,7 +313,8 @@ var App = (function () {
       html += '<button type="button" class="btn-gps wiz-gps-btn" id="wiz-gps">📍 ' + t('useMyLocation') + '</button>';
       html += '<input type="hidden" id="wiz-lat" value="' + (wizardData.lat || '') + '">';
       html += '<input type="hidden" id="wiz-lng" value="' + (wizardData.lng || '') + '">';
-      html += '<p class="gps-preview" id="wiz-gps-preview"></p>';
+      html += '<div class="wiz-map" id="wiz-map"></div>';
+      html += '<p class="gps-preview" id="wiz-gps-preview">' + t('wizMapDrag') + '</p>';
       html += '</div>';
     }
 
@@ -376,10 +403,53 @@ var App = (function () {
       var wLat = document.getElementById('wiz-lat');
       var wLng = document.getElementById('wiz-lng');
       var preview = document.getElementById('wiz-gps-preview');
+      var mapEl = document.getElementById('wiz-map');
+      var wizMap = null;
+      var wizMarker = null;
 
-      if (wLat.value && wLng.value) {
-        preview.textContent = '✅ ' + t('locationSaved') + ' — ' + parseFloat(wLat.value).toFixed(4) + ', ' + parseFloat(wLng.value).toFixed(4);
+      var defaultLat = wLat.value ? parseFloat(wLat.value) : 24.7136;
+      var defaultLng = wLng.value ? parseFloat(wLng.value) : 46.6753;
+      var hasCoords = !!(wLat.value && wLng.value);
+
+      wizMap = L.map(mapEl, { zoomControl: false }).setView([defaultLat, defaultLng], hasCoords ? 16 : 5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(wizMap);
+
+      if (hasCoords) {
+        wizMarker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(wizMap);
+        preview.textContent = '✅ ' + t('locationSaved') + ' — ' + defaultLat.toFixed(4) + ', ' + defaultLng.toFixed(4);
+        wizMarker.on('dragend', function () {
+          var pos = wizMarker.getLatLng();
+          wLat.value = pos.lat.toFixed(6);
+          wLng.value = pos.lng.toFixed(6);
+          wizardData.lat = wLat.value;
+          wizardData.lng = wLng.value;
+          preview.textContent = '✅ ' + t('locationSaved') + ' — ' + pos.lat.toFixed(4) + ', ' + pos.lng.toFixed(4);
+        });
       }
+
+      // Tap map to place/move pin
+      wizMap.on('click', function (e) {
+        wLat.value = e.latlng.lat.toFixed(6);
+        wLng.value = e.latlng.lng.toFixed(6);
+        wizardData.lat = wLat.value;
+        wizardData.lng = wLng.value;
+        preview.textContent = '✅ ' + t('locationSaved') + ' — ' + e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4);
+        if (wizMarker) {
+          wizMarker.setLatLng(e.latlng);
+        } else {
+          wizMarker = L.marker(e.latlng, { draggable: true }).addTo(wizMap);
+          wizMarker.on('dragend', function () {
+            var pos = wizMarker.getLatLng();
+            wLat.value = pos.lat.toFixed(6);
+            wLng.value = pos.lng.toFixed(6);
+            wizardData.lat = wLat.value;
+            wizardData.lng = wLng.value;
+            preview.textContent = '✅ ' + t('locationSaved') + ' — ' + pos.lat.toFixed(4) + ', ' + pos.lng.toFixed(4);
+          });
+        }
+      });
 
       document.getElementById('wiz-gps').addEventListener('click', function () {
         var btn = this;
@@ -391,11 +461,29 @@ var App = (function () {
         btn.disabled = true;
         navigator.geolocation.getCurrentPosition(
           function (pos) {
-            wLat.value = pos.coords.latitude.toFixed(6);
-            wLng.value = pos.coords.longitude.toFixed(6);
+            var lat = pos.coords.latitude;
+            var lng = pos.coords.longitude;
+            wLat.value = lat.toFixed(6);
+            wLng.value = lng.toFixed(6);
             wizardData.lat = wLat.value;
             wizardData.lng = wLng.value;
-            preview.textContent = '✅ ' + t('locationSaved') + ' — ' + parseFloat(wLat.value).toFixed(4) + ', ' + parseFloat(wLng.value).toFixed(4);
+
+            wizMap.setView([lat, lng], 16);
+            if (wizMarker) {
+              wizMarker.setLatLng([lat, lng]);
+            } else {
+              wizMarker = L.marker([lat, lng], { draggable: true }).addTo(wizMap);
+              wizMarker.on('dragend', function () {
+                var p = wizMarker.getLatLng();
+                wLat.value = p.lat.toFixed(6);
+                wLng.value = p.lng.toFixed(6);
+                wizardData.lat = wLat.value;
+                wizardData.lng = wLng.value;
+                preview.textContent = '✅ ' + t('locationSaved') + ' — ' + p.lat.toFixed(4) + ', ' + p.lng.toFixed(4);
+              });
+            }
+
+            preview.textContent = '✅ ' + t('locationSaved') + ' — ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
             btn.textContent = '✅ ' + t('locationSaved');
             btn.disabled = false;
           },
@@ -560,6 +648,7 @@ var App = (function () {
     html += '<button type="button" class="btn-gps" id="btn-gps">📍 ' + t('useMyLocation') + '</button>';
     html += '<input type="hidden" id="f-lat" value="' + (loc.lat || '') + '">';
     html += '<input type="hidden" id="f-lng" value="' + (loc.lng || '') + '">';
+    html += '<div class="form-map" id="form-map"></div>';
     html += '<p class="gps-preview" id="gps-preview"></p>';
     html += '</div>';
     html += '</div>';
@@ -630,6 +719,46 @@ var App = (function () {
 
     updateGpsPreview();
 
+    // Init edit map
+    var formMapEl = document.getElementById('form-map');
+    var formMap = null;
+    var formMarker = null;
+    var hasLatLng = fLat.value && fLng.value;
+    var initLat = hasLatLng ? parseFloat(fLat.value) : 24.7136;
+    var initLng = hasLatLng ? parseFloat(fLng.value) : 46.6753;
+
+    formMap = L.map(formMapEl, { zoomControl: false }).setView([initLat, initLng], hasLatLng ? 16 : 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(formMap);
+
+    if (hasLatLng) {
+      formMarker = L.marker([initLat, initLng], { draggable: true }).addTo(formMap);
+      formMarker.on('dragend', function () {
+        var p = formMarker.getLatLng();
+        fLat.value = p.lat.toFixed(6);
+        fLng.value = p.lng.toFixed(6);
+        updateGpsPreview();
+      });
+    }
+
+    formMap.on('click', function (e) {
+      fLat.value = e.latlng.lat.toFixed(6);
+      fLng.value = e.latlng.lng.toFixed(6);
+      updateGpsPreview();
+      if (formMarker) {
+        formMarker.setLatLng(e.latlng);
+      } else {
+        formMarker = L.marker(e.latlng, { draggable: true }).addTo(formMap);
+        formMarker.on('dragend', function () {
+          var p = formMarker.getLatLng();
+          fLat.value = p.lat.toFixed(6);
+          fLng.value = p.lng.toFixed(6);
+          updateGpsPreview();
+        });
+      }
+    });
+
     btnBack.addEventListener('click', function () { showView('list'); });
     btnCancel.addEventListener('click', function () { showView('list'); });
 
@@ -643,9 +772,25 @@ var App = (function () {
       btnGps.disabled = true;
       navigator.geolocation.getCurrentPosition(
         function (pos) {
-          fLat.value = pos.coords.latitude.toFixed(6);
-          fLng.value = pos.coords.longitude.toFixed(6);
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+          fLat.value = lat.toFixed(6);
+          fLng.value = lng.toFixed(6);
           updateGpsPreview();
+
+          formMap.setView([lat, lng], 16);
+          if (formMarker) {
+            formMarker.setLatLng([lat, lng]);
+          } else {
+            formMarker = L.marker([lat, lng], { draggable: true }).addTo(formMap);
+            formMarker.on('dragend', function () {
+              var p = formMarker.getLatLng();
+              fLat.value = p.lat.toFixed(6);
+              fLng.value = p.lng.toFixed(6);
+              updateGpsPreview();
+            });
+          }
+
           btnGps.textContent = '✅ ' + I18n.t('locationSaved');
           btnGps.disabled = false;
         },

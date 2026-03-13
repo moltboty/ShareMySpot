@@ -72,7 +72,8 @@ var I18n = (function () {
       wizInstallSub: 'Access ShareMySpot instantly like a native app',
       wizNext: 'Next',
       wizSkip: 'Skip',
-      wizSaveLocation: 'Save Location'
+      wizSaveLocation: 'Save Location',
+      wizMapDrag: 'Tap the map or drag the pin to adjust'
     },
     ar: {
       appName: 'شارك موقعي',
@@ -140,7 +141,8 @@ var I18n = (function () {
       wizInstallSub: 'افتح شارك موقعي بسرعة مثل تطبيق عادي',
       wizNext: 'التالي',
       wizSkip: 'تخطي',
-      wizSaveLocation: 'حفظ الموقع'
+      wizSaveLocation: 'حفظ الموقع',
+      wizMapDrag: 'اضغط على الخريطة أو اسحب الدبوس للتعديل'
     }
   };
 

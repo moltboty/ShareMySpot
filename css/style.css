@@ -289,6 +289,13 @@ body {
   gap: 4px;
 }
 
+/* Card map preview */
+.card-map {
+  width: 100%;
+  height: 140px;
+  z-index: 1;
+}
+
 .card-thumb {
   margin: 0 -16px;
   margin-top: 4px;
@@ -755,6 +762,23 @@ body {
 
 [dir="rtl"] .wiz-step .form-group {
   text-align: right;
+}
+
+.wiz-map {
+  width: 100%;
+  height: 220px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-top: 4px;
+  z-index: 1;
+}
+
+.form-map {
+  width: 100%;
+  height: 200px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  z-index: 1;
 }
 
 .wiz-gps-btn {
