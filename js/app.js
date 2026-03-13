@@ -127,7 +127,10 @@ var App = (function () {
         html += '<button class="btn-sm btn-delete" data-id="' + loc.id + '">🗑️</button>';
         html += '</div></div>';
         html += '</div>';
+        html += '<div class="card-buttons">';
         html += '<button class="btn-share" data-id="' + loc.id + '">📤 ' + t('shareWhatsApp') + '</button>';
+        html += '<button class="btn-copy" data-id="' + loc.id + '">📋 ' + t('copyToClipboard') + '</button>';
+        html += '</div>';
         html += '</div>';
       }
       html += '</div>';
@@ -195,6 +198,13 @@ var App = (function () {
     for (var i = 0; i < shareBtns.length; i++) {
       shareBtns[i].addEventListener('click', function () {
         Share.shareLocation(this.getAttribute('data-id'));
+      });
+    }
+
+    var copyBtns = document.querySelectorAll('.btn-copy');
+    for (var c = 0; c < copyBtns.length; c++) {
+      copyBtns[c].addEventListener('click', function () {
+        Share.copyLocation(this.getAttribute('data-id'));
       });
     }
 

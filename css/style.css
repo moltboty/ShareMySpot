@@ -308,7 +308,12 @@ body {
   display: block;
 }
 
+.card-buttons {
+  display: flex;
+}
+
 .btn-share {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -327,6 +332,27 @@ body {
 
 .btn-share:active {
   background: var(--wa-green-dark);
+}
+
+.btn-copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 14px;
+  border: none;
+  border-left: 1px solid rgba(255,255,255,0.2);
+  background: var(--wa-teal);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.btn-copy:active {
+  background: var(--wa-teal-dark);
 }
 
 /* --- FAB --- */

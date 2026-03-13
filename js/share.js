@@ -89,8 +89,21 @@ var Share = (function () {
     });
   }
 
+  async function copyLocation(locationId) {
+    var loc = Storage.getLocationById(locationId);
+    if (!loc) return;
+    var message = buildMessage(loc);
+    try {
+      await navigator.clipboard.writeText(message);
+      App.showToast(I18n.t('copied'));
+    } catch (err) {
+      App.showToast(I18n.t('shareError'));
+    }
+  }
+
   return {
     shareLocation: shareLocation,
+    copyLocation: copyLocation,
     handleImageUpload: handleImageUpload
   };
 })();

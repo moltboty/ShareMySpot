@@ -2,7 +2,7 @@
 // ShareMySpot — Service Worker
 // ========================================
 
-var CACHE_NAME = 'sharemyspot-v5';
+var CACHE_NAME = 'sharemyspot-v6';
 var ASSETS = [
   './',
   './index.html',
