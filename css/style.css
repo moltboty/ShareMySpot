@@ -84,6 +84,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   width: 100%;
 }
 
@@ -93,10 +94,18 @@ body {
   gap: 6px;
 }
 
+.header-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
 .app-title {
   font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.01em;
+  flex: 1;
 }
 
 .app-title-sub {
@@ -229,6 +238,14 @@ body {
   font-size: 3.5rem;
   margin-bottom: 16px;
   opacity: 0.5;
+}
+
+.empty-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 18px;
+  margin-bottom: 16px;
+  opacity: 0.85;
 }
 
 .empty-state p {
@@ -722,27 +739,60 @@ body {
   flex-direction: column;
 }
 
-.wiz-counter {
-  font-size: 0.8rem;
-  opacity: 0.7;
-  margin-left: auto;
+.wiz-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px 8px;
+  gap: 0;
 }
 
-[dir="rtl"] .wiz-counter {
-  margin-left: 0;
-  margin-right: auto;
-}
-
-.wiz-progress {
-  height: 4px;
+.wiz-dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
   background: var(--border);
+  color: var(--text-muted);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
-.wiz-progress-fill {
-  height: 100%;
+.wiz-dot-active {
   background: var(--wa-green);
-  transition: width 0.4s ease;
-  border-radius: 0 2px 2px 0;
+  color: #fff;
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.4);
+}
+
+.wiz-dot-done {
+  background: var(--wa-green-dark);
+  color: #fff;
+}
+
+.wiz-dot-done span {
+  display: none;
+}
+
+.wiz-dot-done::after {
+  content: '✓';
+  font-size: 0.8rem;
+}
+
+.wiz-dot-line {
+  flex: 1;
+  height: 3px;
+  background: var(--border);
+  max-width: 40px;
+  transition: background 0.3s ease;
+}
+
+.wiz-dot-line-done {
+  background: var(--wa-green-dark);
 }
 
 .wiz-content {

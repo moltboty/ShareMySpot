@@ -91,6 +91,7 @@ var App = (function () {
 
     var html = '<div class="view-list">';
     html += '<header class="app-header"><div class="header-top">';
+    html += '<img src="icons/icon-192.png" class="header-logo" alt="">';
     html += '<h1 class="app-title">' + t('appName') + ' <span class="app-title-sub">/ ' + t('appNameAr') + '</span></h1>';
     html += '<div class="header-actions">';
     html += '<button class="theme-toggle" id="btn-theme">' + getThemeIcon() + '</button>';
@@ -99,7 +100,7 @@ var App = (function () {
     html += '</div></div></header>';
 
     if (locations.length === 0) {
-      html += '<div class="empty-state"><div class="empty-icon">📍</div>';
+      html += '<div class="empty-state"><img src="icons/icon-192.png" class="empty-logo" alt="">';
       html += '<p>' + t('emptyState') + '</p></div>';
     } else {
       html += '<div class="location-cards">';
@@ -284,7 +285,7 @@ var App = (function () {
 
   // --- Wizard View ---
 
-  var WIZARD_STEPS = ['name', 'gps', 'photo', 'door', 'install'];
+  var WIZARD_STEPS = ['name', 'gps', 'photo', 'door'];
 
   function renderWizard() {
     var t = I18n.t;
@@ -295,11 +296,18 @@ var App = (function () {
     html += '<header class="app-header">';
     html += '<button class="btn-back" id="wiz-back">←</button>';
     html += '<h1 class="app-title">' + t('addLocation') + '</h1>';
-    html += '<span class="wiz-counter">' + (wizardStep + 1) + '/' + totalSteps + '</span>';
     html += '</header>';
 
-    // Progress bar
-    html += '<div class="wiz-progress"><div class="wiz-progress-fill" style="width:' + (((wizardStep + 1) / totalSteps) * 100) + '%"></div></div>';
+    // Step dots
+    html += '<div class="wiz-dots">';
+    for (var d = 0; d < totalSteps; d++) {
+      var dotClass = 'wiz-dot';
+      if (d < wizardStep) dotClass += ' wiz-dot-done';
+      if (d === wizardStep) dotClass += ' wiz-dot-active';
+      html += '<div class="' + dotClass + '"><span>' + (d + 1) + '</span></div>';
+      if (d < totalSteps - 1) html += '<div class="wiz-dot-line' + (d < wizardStep ? ' wiz-dot-line-done' : '') + '"></div>';
+    }
+    html += '</div>';
 
     html += '<div class="wiz-content">';
 
@@ -365,21 +373,11 @@ var App = (function () {
       html += '</div>';
     }
 
-    if (step === 'install') {
-      html += '<div class="wiz-step wiz-step-final">';
-      html += '<div class="wiz-icon">✅</div>';
-      html += '<h2 class="wiz-title">' + t('wizInstallTitle') + '</h2>';
-      html += '<p class="wiz-subtitle">' + t('wizInstallSub') + '</p>';
-      html += '<button type="button" class="btn-install wiz-install-btn" id="wiz-install-btn">📲 ' + t('installApp') + '</button>';
-      html += '<button type="button" class="btn-skip" id="wiz-skip-install">' + t('wizSkip') + '</button>';
-      html += '</div>';
-    }
-
     html += '</div>';
 
     // Bottom buttons
     html += '<div class="wiz-buttons">';
-    if (step === 'install') {
+    if (step === 'door') {
       html += '<button class="btn-save wiz-btn-save" id="wiz-save">💾 ' + t('wizSaveLocation') + '</button>';
     } else {
       html += '<button class="btn-save wiz-btn-next" id="wiz-next">' + t('wizNext') + ' →</button>';
@@ -535,13 +533,6 @@ var App = (function () {
             if (btnUpload) btnUpload.style.display = 'none';
           });
         }
-      });
-    }
-
-    if (step === 'install') {
-      document.getElementById('wiz-install-btn').addEventListener('click', handleInstallClick);
-      document.getElementById('wiz-skip-install').addEventListener('click', function () {
-        // do nothing, just visual
       });
     }
 
