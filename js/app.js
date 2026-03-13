@@ -15,7 +15,14 @@ var App = (function () {
   window.addEventListener('beforeinstallprompt', function (e) {
     e.preventDefault();
     deferredPrompt = e;
+    // Show install button if hidden
+    var installBtn = document.getElementById('btn-install');
+    if (installBtn) installBtn.style.display = '';
   });
+
+  function isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  }
 
   // --- Init ---
 
@@ -137,17 +144,22 @@ var App = (function () {
       html += '</div>';
     }
 
-    // Install app button
-    html += '<div class="install-section">';
-    html += '<button class="btn-install" id="btn-install">📲 ' + t('installApp') + '</button>';
-    html += '</div>';
+    if (!isStandalone()) {
+      // Show install button only in browser
+      html += '<div class="install-section">';
+      html += '<button class="btn-install" id="btn-install">📲 ' + t('installApp') + '</button>';
+      html += '</div>';
+    }
 
     // Privacy notice
     html += '<div class="privacy-notice">';
     html += '<p>🔒 ' + t('privacyNotice') + '</p>';
     html += '</div>';
 
-    html += '<button class="fab" id="btn-add">+</button>';
+    if (isStandalone()) {
+      // Show + button only when running as installed app
+      html += '<button class="fab" id="btn-add">+</button>';
+    }
     html += '</div>';
     return html;
   }
@@ -175,17 +187,21 @@ var App = (function () {
 
   function bindListEvents() {
     initCardMaps();
-    document.getElementById('btn-add').addEventListener('click', function () {
-      wizardStep = 0;
-      wizardData = {};
-      currentImageData = null;
-      currentView = 'wizard';
-      renderCurrentView();
-    });
+    var btnAdd = document.getElementById('btn-add');
+    if (btnAdd) {
+      btnAdd.addEventListener('click', function () {
+        wizardStep = 0;
+        wizardData = {};
+        currentImageData = null;
+        currentView = 'wizard';
+        renderCurrentView();
+      });
+    }
     document.getElementById('btn-settings').addEventListener('click', function () { showView('settings'); });
     document.getElementById('btn-theme').addEventListener('click', toggleTheme);
 
-    document.getElementById('btn-install').addEventListener('click', handleInstallClick);
+    var btnInstall = document.getElementById('btn-install');
+    if (btnInstall) btnInstall.addEventListener('click', handleInstallClick);
 
     document.getElementById('btn-lang').addEventListener('click', function () {
       var settings = Storage.getSettings();
