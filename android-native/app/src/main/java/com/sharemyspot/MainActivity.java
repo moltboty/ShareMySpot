@@ -28,7 +28,7 @@ public class MainActivity extends Activity {
     int green = Color.rgb(37,211,102), teal = Color.rgb(7,94,84), bg = Color.rgb(246,248,247);
     LinearLayout root, tabBar, page; boolean ar=false; int activeTab=0; ArrayList<Card> cards=new ArrayList<>();
     EditText nameEt, searchEt, doorEt, phoneEt; TextView coordTxt; LinearLayout photoRow; ArrayList<Uri> tempPhotos=new ArrayList<>(); double selLat=24.7136, selLng=46.6753; String selAddress="Riyadh";
-    static final int PICK=77;
+    static final int PICK=77, REQ_LOC=88;
 
     static class Card { String id,name,door,address; double lat,lng; ArrayList<String> photos=new ArrayList<>(); }
 
@@ -58,11 +58,15 @@ public class MainActivity extends Activity {
         add(page,tv(ar?"أنشئ بطاقة موقعك":"Create your location card",22,Color.rgb(20,30,30),Typeface.BOLD));
         add(page,tv(ar?"أضف الاسم، ابحث عن الموقع، أرفق صورتين ثم احفظ البطاقة.":"Add name, search location, attach up to 2 photos, then save.",14,Color.DKGRAY,Typeface.NORMAL));
         nameEt=et(ar?"مثال: البيت / العمل":"Example: Home / Work"); add(page,label(ar?"اسم البطاقة":"Card title")); add(page,nameEt);
-        searchEt=et(ar?"ابحث عن البيت أو المجمع":"Search home/building/compound"); add(page,label(ar?"موقع Google Map":"Google Map location")); add(page,searchEt);
-        Button search=btn(ar?"بحث وتحديد الموقع":"Find location",teal); search.setOnClickListener(v->findLocation()); add(page,search);
-        coordTxt=tv(ar?"الموقع الحالي: الرياض":"Current: Riyadh",14,Color.DKGRAY,Typeface.BOLD); add(page,coordTxt);
+        searchEt=et(ar?"الصق رابط Google Maps أو اكتب العنوان":"Paste Google Maps link or type address"); add(page,label(ar?"موقع Google Map":"Google Map location")); add(page,searchEt);
+        Button search=btn(ar?"بحث / قراءة رابط الخريطة":"Find / read map link",teal); search.setOnClickListener(v->findLocation()); add(page,search);
+        Button gps=btn(ar?"استخدم موقعي الحالي GPS":"Use my current GPS location",green); gps.setOnClickListener(v->useCurrentGps()); add(page,gps);
+        Button maps=btn(ar?"افتح في Google Maps للتأكد":"Open in Google Maps to check",teal); maps.setOnClickListener(v->openSelectedMap()); add(page,maps);
+        coordTxt=tv(ar?"الموقع الحالي: الرياض - اضغط GPS أو الصق رابط الخريطة":"Current: Riyadh - tap GPS or paste map link",14,Color.DKGRAY,Typeface.BOLD); add(page,coordTxt);
         doorEt=et(ar?"مثال: فيلا 12، الدور الثاني":"Example: Villa 12, second floor"); add(page,label(ar?"تفاصيل الباب / البيت":"Door / home details")); add(page,doorEt);
-        Button pick=btn(ar?"إضافة صورتين للباب / البيت":"Add up to 2 door/home photos",green); pick.setOnClickListener(v->pickPhotos()); add(page,pick);
+        add(page,label(ar?"الصور":"Photos"));
+        add(page,tv(ar?"اضغط الزر الأخضر لاختيار صور الباب/البيت من المعرض.":"Tap the green button to choose door/home photos from Gallery.",14,Color.DKGRAY,Typeface.NORMAL));
+        Button pick=btn(ar?"اختر الصور من المعرض":"Choose photos from Gallery",green); pick.setOnClickListener(v->pickPhotos()); add(page,pick);
         photoRow=new LinearLayout(this); photoRow.setOrientation(LinearLayout.HORIZONTAL); photoRow.setPadding(0,dp(8),0,dp(8)); add(page,photoRow); refreshTempPhotos();
         Button save=btn(ar?"حفظ البطاقة":"Save card",green); save.setOnClickListener(v->saveCard()); add(page,save);
     }
@@ -77,6 +81,7 @@ public class MainActivity extends Activity {
     void addCardView(Card c){
         LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(14),dp(14),dp(14),dp(14)); box.setBackground(round(Color.WHITE,dp(20),Color.rgb(225,230,228))); LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2); bp.setMargins(0,0,0,dp(16)); page.addView(box,bp);
         add(box,tv(c.name,20,teal,Typeface.BOLD)); add(box,tv("📍 https://maps.google.com/?q="+c.lat+","+c.lng,13,Color.DKGRAY,Typeface.NORMAL)); if(c.door.length()>0) add(box,tv("🚪 "+c.door,15,Color.DKGRAY,Typeface.BOLD));
+        Button mapBtn=btn(ar?"افتح الموقع في Google Maps":"Open location in Google Maps",teal); mapBtn.setOnClickListener(v->openMap(c.lat,c.lng,c.name)); add(box,mapBtn);
         LinearLayout imgs=new LinearLayout(this); imgs.setOrientation(LinearLayout.HORIZONTAL); box.addView(imgs,new LinearLayout.LayoutParams(-1,dp(120)));
         for(String p:c.photos){ ImageView iv=new ImageView(this); iv.setScaleType(ImageView.ScaleType.CENTER_CROP); iv.setImageURI(Uri.parse(p)); LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1); lp.setMargins(dp(4),dp(8),dp(4),dp(8)); imgs.addView(iv,lp); }
         EditText phone=et(ar?"رقم واتساب للسائق بدون حفظ":"Driver WhatsApp number (unsaved)"); phone.setInputType(android.text.InputType.TYPE_CLASS_PHONE); add(box,phone);
@@ -85,12 +90,32 @@ public class MainActivity extends Activity {
     }
 
     void findLocation(){
-        String q=searchEt.getText().toString().trim(); if(q.isEmpty()){toast(ar?"اكتب اسم المكان":"Type a place"); return;}
-        new Thread(()->{ try{ Geocoder g=new Geocoder(this, Locale.getDefault()); java.util.List<Address> res=g.getFromLocationName(q,1); runOnUiThread(()->{ if(res!=null&&!res.isEmpty()){ Address a=res.get(0); selLat=a.getLatitude(); selLng=a.getLongitude(); selAddress=a.getAddressLine(0); coordTxt.setText("✅ "+selAddress+"\n"+selLat+", "+selLng); } else toast(ar?"لم يتم العثور":"Not found"); }); }catch(Exception e){ runOnUiThread(()->toast(ar?"فشل البحث":"Search failed")); }}).start();
+        String q=searchEt.getText().toString().trim(); if(q.isEmpty()){toast(ar?"الصق رابط الخريطة أو اكتب عنوان":"Paste a map link or type address"); return;}
+        if(applyCoordsFromText(q)){ toast(ar?"تم أخذ الإحداثيات من الرابط":"Coordinates loaded from link"); return; }
+        new Thread(()->{ try{ Geocoder g=new Geocoder(this, Locale.getDefault()); java.util.List<Address> res=g.getFromLocationName(q,1); runOnUiThread(()->{ if(res!=null&&!res.isEmpty()){ Address a=res.get(0); setSelectedLocation(a.getLatitude(),a.getLongitude(),a.getAddressLine(0)); } else toast(ar?"لم يتم العثور - استخدم GPS أو افتح Google Maps":"Not found - use GPS or open Google Maps"); }); }catch(Exception e){ runOnUiThread(()->toast(ar?"فشل البحث - استخدم GPS":"Search failed - use GPS")); }}).start();
     }
-    void pickPhotos(){ Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT); i.setType("image/*"); i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true); i.addCategory(Intent.CATEGORY_OPENABLE); startActivityForResult(i,PICK); }
-    protected void onActivityResult(int r,int c,Intent d){ super.onActivityResult(r,c,d); if(r==PICK&&c==RESULT_OK&&d!=null){ tempPhotos.clear(); if(d.getClipData()!=null){ for(int i=0;i<Math.min(2,d.getClipData().getItemCount());i++) tempPhotos.add(d.getClipData().getItemAt(i).getUri()); } else if(d.getData()!=null) tempPhotos.add(d.getData()); refreshTempPhotos(); } }
-    void refreshTempPhotos(){ if(photoRow==null)return; photoRow.removeAllViews(); for(Uri u:tempPhotos){ ImageView iv=new ImageView(this); iv.setImageURI(u); iv.setScaleType(ImageView.ScaleType.CENTER_CROP); LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(120),1); lp.setMargins(dp(4),dp(4),dp(4),dp(4)); photoRow.addView(iv,lp);} }
+    boolean applyCoordsFromText(String text){
+        java.util.regex.Matcher m=java.util.regex.Pattern.compile("(-?\\d{1,3}\\.\\d+)\\s*,\\s*(-?\\d{1,3}\\.\\d+)").matcher(text);
+        if(m.find()){ try{ setSelectedLocation(Double.parseDouble(m.group(1)),Double.parseDouble(m.group(2)),"Google Maps link"); return true; }catch(Exception e){} }
+        return false;
+    }
+    void setSelectedLocation(double lat,double lng,String address){ selLat=lat; selLng=lng; selAddress=address==null?"Selected location":address; if(coordTxt!=null) coordTxt.setText("✅ "+selAddress+"\n"+selLat+", "+selLng); }
+    void useCurrentGps(){
+        if(Build.VERSION.SDK_INT>=23 && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED){ requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION},REQ_LOC); return; }
+        try{
+            LocationManager lm=(LocationManager)getSystemService(LOCATION_SERVICE); Location best=null;
+            for(String p:lm.getProviders(true)){ Location l=lm.getLastKnownLocation(p); if(l!=null && (best==null || l.getAccuracy()<best.getAccuracy())) best=l; }
+            if(best!=null){ setSelectedLocation(best.getLatitude(),best.getLongitude(),"GPS current location"); toast(ar?"تم أخذ موقعك الحالي":"Current GPS location saved"); }
+            else { toast(ar?"لم أجد GPS. افتح Google Maps أو شغل الموقع":"No GPS yet. Enable location or open Google Maps"); startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)); }
+        }catch(Exception e){ toast(ar?"تعذر أخذ GPS":"Could not get GPS"); }
+    }
+    public void onRequestPermissionsResult(int r,String[] p,int[] g){ super.onRequestPermissionsResult(r,p,g); if(r==REQ_LOC && g.length>0 && g[0]==PackageManager.PERMISSION_GRANTED) useCurrentGps(); }
+    void openSelectedMap(){ String q=searchEt==null?"":searchEt.getText().toString().trim(); if(q.length()>0 && !applyCoordsFromText(q)) openMapSearch(q); else openMap(selLat,selLng,"ShareMySpot"); }
+    void openMapSearch(String q){ try{ startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("geo:0,0?q="+Uri.encode(q))).setPackage("com.google.android.apps.maps")); }catch(Exception e){ startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://www.google.com/maps/search/?api=1&query="+Uri.encode(q)))); } }
+    void openMap(double lat,double lng,String label){ Uri u=Uri.parse("geo:"+lat+","+lng+"?q="+lat+","+lng+"("+Uri.encode(label)+")"); try{ startActivity(new Intent(Intent.ACTION_VIEW,u).setPackage("com.google.android.apps.maps")); }catch(Exception e){ startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://maps.google.com/?q="+lat+","+lng))); } }
+    void pickPhotos(){ try{ Intent i=new Intent(Intent.ACTION_GET_CONTENT); i.setType("image/*"); i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true); i.addCategory(Intent.CATEGORY_OPENABLE); startActivityForResult(Intent.createChooser(i,ar?"اختر صور البيت":"Choose home photos"),PICK); }catch(Exception e){ toast(ar?"لم أجد معرض الصور":"Gallery app not found"); } }
+    protected void onActivityResult(int r,int c,Intent d){ super.onActivityResult(r,c,d); if(r==PICK&&c==RESULT_OK&&d!=null){ tempPhotos.clear(); if(d.getClipData()!=null){ for(int i=0;i<Math.min(2,d.getClipData().getItemCount());i++) tempPhotos.add(d.getClipData().getItemAt(i).getUri()); } else if(d.getData()!=null) tempPhotos.add(d.getData()); refreshTempPhotos(); toast((ar?"تمت إضافة الصور: ":"Photos added: ")+tempPhotos.size()); } }
+    void refreshTempPhotos(){ if(photoRow==null)return; photoRow.removeAllViews(); if(tempPhotos.isEmpty()){ add(photoRow,tv(ar?"لا توجد صور مختارة بعد":"No photos selected yet",14,Color.GRAY,Typeface.NORMAL)); return; } for(Uri u:tempPhotos){ ImageView iv=new ImageView(this); iv.setImageURI(u); iv.setScaleType(ImageView.ScaleType.CENTER_CROP); LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(120),1); lp.setMargins(dp(4),dp(4),dp(4),dp(4)); photoRow.addView(iv,lp);} }
     void saveCard(){ String n=nameEt.getText().toString().trim(); if(n.isEmpty()){toast(ar?"اكتب اسم البطاقة":"Add card title"); return;} Card c=new Card(); c.id="c"+System.currentTimeMillis(); c.name=n; c.door=doorEt.getText().toString().trim(); c.lat=selLat; c.lng=selLng; c.address=selAddress; for(Uri u:tempPhotos) c.photos.add(copyToFiles(u,c.id)); cards.add(c); persist(); tempPhotos.clear(); activeTab=1; render(); }
     String copyToFiles(Uri uri){ return copyToFiles(uri,"img"); } String copyToFiles(Uri uri,String prefix){ try{ File f=new File(getFilesDir(),prefix+"_"+System.nanoTime()+".jpg"); InputStream in=getContentResolver().openInputStream(uri); FileOutputStream out=new FileOutputStream(f); byte[] buf=new byte[8192]; int n; while((n=in.read(buf))>0) out.write(buf,0,n); in.close(); out.close(); return Uri.fromFile(f).toString(); }catch(Exception e){ return uri.toString(); } }
 
