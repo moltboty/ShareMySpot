@@ -58,14 +58,12 @@ public class MainActivity extends Activity {
 
     void renderCreate(){
         add(page,tv(ar?"أنشئ بطاقة موقعك":"Create your location card",22,Color.rgb(20,30,30),Typeface.BOLD));
-        add(page,tv(ar?"أضف الاسم، ابحث عن الموقع، أرفق صورتين ثم احفظ البطاقة.":"Add name, search location, attach up to 2 photos, then save.",14,Color.DKGRAY,Typeface.NORMAL));
+        add(page,tv(ar?"أضف الاسم، حدد الموقع من الخريطة، أرفق الصور ثم احفظ.":"Add name, pick the pin on the map, attach photos, then save.",14,Color.DKGRAY,Typeface.NORMAL));
         nameEt=et(ar?"مثال: البيت / العمل":"Example: Home / Work"); add(page,label(ar?"اسم البطاقة":"Card title")); add(page,nameEt);
-        searchEt=et(ar?"الصق رابط Google Maps أو اكتب العنوان":"Paste Google Maps link or type address"); add(page,label(ar?"موقع Google Map":"Google Map location")); add(page,searchEt);
-        Button search=btn(ar?"بحث / قراءة رابط الخريطة":"Find / read map link",teal); search.setOnClickListener(v->findLocation()); add(page,search);
-        Button gps=btn(ar?"استخدم موقعي الحالي GPS":"Use my current GPS location",green); gps.setOnClickListener(v->useCurrentGps()); add(page,gps);
-        Button freeMap=btn(ar?"اختيار من خريطة مجانية":"Pick from free map",green); freeMap.setOnClickListener(v->openFreeMapPicker()); add(page,freeMap);
-        Button maps=btn(ar?"افتح في Google Maps للتأكد":"Open in Google Maps to check",teal); maps.setOnClickListener(v->openSelectedMap()); add(page,maps);
-        coordTxt=tv(ar?"الموقع الحالي: الرياض - اضغط GPS أو الصق رابط الخريطة":"Current: Riyadh - tap GPS or paste map link",14,Color.DKGRAY,Typeface.BOLD); add(page,coordTxt);
+        add(page,label(ar?"حدد الموقع من الخريطة":"Pick location on map"));
+        add(page,tv(ar?"حرّك الخريطة حتى تكون الدبوسة على باب البيت. لا تحتاج نسخ/لصق.":"Move the map until the pin is on your door. No copy/paste needed.",14,Color.DKGRAY,Typeface.NORMAL));
+        addInlineMapPicker(page);
+        coordTxt=tv(ar?"الموقع المختار: حرّك الخريطة لتحديد المكان":"Selected location: move the map to set the place",14,Color.DKGRAY,Typeface.BOLD); add(page,coordTxt);
         doorEt=et(ar?"مثال: فيلا 12، الدور الثاني":"Example: Villa 12, second floor"); add(page,label(ar?"تفاصيل الباب / البيت":"Door / home details")); add(page,doorEt);
         add(page,label(ar?"الصور":"Photos"));
         add(page,tv(ar?"اضغط الزر الأخضر لاختيار صور الباب/البيت من المعرض.":"Tap the green button to choose door/home photos from Gallery.",14,Color.DKGRAY,Typeface.NORMAL));
@@ -114,27 +112,30 @@ public class MainActivity extends Activity {
     }
     public void onRequestPermissionsResult(int r,String[] p,int[] g){ super.onRequestPermissionsResult(r,p,g); if(r==REQ_LOC && g.length>0 && g[0]==PackageManager.PERMISSION_GRANTED) useCurrentGps(); }
 
+
     @SuppressLint({"SetJavaScriptEnabled","AddJavascriptInterface"})
-    void openFreeMapPicker(){
-        final Dialog d=new Dialog(this);
-        LinearLayout wrap=new LinearLayout(this); wrap.setOrientation(LinearLayout.VERTICAL); wrap.setPadding(dp(8),dp(8),dp(8),dp(8));
-        TextView help=tv(ar?"خريطة مجانية: حرّك الخريطة ثم اضغط حفظ هذا الموقع":"Free map: move the map, then tap Save this location",15,teal,Typeface.BOLD); add(wrap,help);
-        WebView web=new WebView(this); web.getSettings().setJavaScriptEnabled(true); web.getSettings().setDomStorageEnabled(true);
+    void addInlineMapPicker(ViewGroup parent){
+        FrameLayout frame=new FrameLayout(this);
+        frame.setBackground(round(Color.WHITE,dp(18),Color.rgb(220,226,223)));
+        WebView web=new WebView(this);
+        web.getSettings().setJavaScriptEnabled(true);
+        web.getSettings().setDomStorageEnabled(true);
+        web.setOnTouchListener((v,e)->{ v.getParent().requestDisallowInterceptTouchEvent(true); return false; });
         final double startLat=selLat, startLng=selLng;
-        class Bridge { @JavascriptInterface public void setLocation(String lat,String lng){ try{ double la=Double.parseDouble(lat), ln=Double.parseDouble(lng); runOnUiThread(()->{ setSelectedLocation(la,ln,"Free map selected location"); d.dismiss(); toast(ar?"تم حفظ الموقع من الخريطة":"Location saved from map"); }); }catch(Exception e){} } }
+        class Bridge { @JavascriptInterface public void setLocation(String lat,String lng){ try{ double la=Double.parseDouble(lat), ln=Double.parseDouble(lng); runOnUiThread(()->{ selLat=la; selLng=ln; selAddress="Map pin location"; if(coordTxt!=null) coordTxt.setText("✅ "+selLat+", "+selLng); }); }catch(Exception e){} } }
         web.addJavascriptInterface(new Bridge(),"Android");
         String html=""+
         "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>"+
         "<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'>"+
         "<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>"+
-        "<style>html,body,#map{height:100%;margin:0}.pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);font-size:42px;z-index:999}.bar{position:absolute;left:10px;right:10px;bottom:12px;z-index:999;background:white;border-radius:14px;padding:10px;box-shadow:0 2px 10px #777;font-family:sans-serif}button{width:100%;font-size:18px;font-weight:bold;color:white;background:#25D366;border:0;border-radius:12px;padding:14px}</style>"+
-        "</head><body><div id='map'></div><div class='pin'>📍</div><div class='bar'><button onclick='save()'>"+(ar?"حفظ هذا الموقع":"Save this location")+"</button></div>"+
-        "<script>var map=L.map('map').setView(["+startLat+","+startLng+"],17);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);function save(){var c=map.getCenter();Android.setLocation(String(c.lat),String(c.lng));}</script>"+
+        "<style>html,body,#map{height:100%;margin:0;background:#eef}.pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);font-size:46px;z-index:999;pointer-events:none;text-shadow:0 2px 4px white}.hint{position:absolute;left:10px;right:10px;top:10px;z-index:999;background:white;border-radius:14px;padding:8px;text-align:center;font:bold 14px sans-serif;box-shadow:0 2px 8px #777}</style>"+
+        "</head><body><div id='map'></div><div class='hint'>"+(ar?"حرّك الخريطة وضع الدبوس على البيت":"Move map and place pin on home")+"</div><div class='pin'>📍</div>"+
+        "<script>var map=L.map('map',{zoomControl:true}).setView(["+startLat+","+startLng+"],17);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);function send(){var c=map.getCenter();Android.setLocation(String(c.lat),String(c.lng));}map.on('moveend',send);setTimeout(send,500);</script>"+
         "</body></html>";
         web.loadDataWithBaseURL("https://openstreetmap.org/",html,"text/html","UTF-8",null);
-        wrap.addView(web,new LinearLayout.LayoutParams(-1,0,1));
-        Button close=btn(ar?"إغلاق":"Close",Color.rgb(120,120,120)); close.setOnClickListener(v->d.dismiss()); add(wrap,close);
-        d.setContentView(wrap); Window w=d.getWindow(); d.show(); Window win=d.getWindow(); if(win!=null) win.setLayout(-1,-1);
+        frame.addView(web,new FrameLayout.LayoutParams(-1,-1));
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(380)); lp.setMargins(0,dp(6),0,dp(8));
+        parent.addView(frame,lp);
     }
 
     void openSelectedMap(){ String q=searchEt==null?"":searchEt.getText().toString().trim(); if(q.length()>0 && !applyCoordsFromText(q)) openMapSearch(q); else openMap(selLat,selLng,"ShareMySpot"); }
