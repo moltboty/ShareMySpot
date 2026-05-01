@@ -1,0 +1,17 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.sharemyspot'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.sharemyspot'
+        minSdk 23
+        targetSdk 35
+        versionCode 1
+        versionName '1.0-test'
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core:1.13.1'
+}
