@@ -106,9 +106,12 @@ var App = (function () {
     html += '<button class="btn-icon" id="btn-settings">⚙️</button>';
     html += '</div></div></header>';
 
+    html += renderQuickActions();
+
     if (locations.length === 0) {
       html += '<div class="empty-state"><img src="icons/icon-192.png" class="empty-logo" alt="">';
-      html += '<p>' + t('emptyState') + '</p></div>';
+      html += '<p>ابدأ بإضافة موقعك أو افتح واتساب برقم بدون حفظه</p>';
+      html += '<p class="empty-sub">Add a saved place, or start a WhatsApp chat without saving the number.</p></div>';
     } else {
       html += '<div class="location-cards">';
       for (var i = 0; i < locations.length; i++) {
@@ -156,11 +159,29 @@ var App = (function () {
     html += '<p>🔒 ' + t('privacyNotice') + '</p>';
     html += '</div>';
 
-    if (isStandalone()) {
-      // Show + button only when running as installed app
-      html += '<button class="fab" id="btn-add">+</button>';
-    }
+    // Primary + button should always be visible. Browser users must be able to start without installing first.
+    html += '<button class="fab" id="btn-add" aria-label="Add location">+</button>';
     html += '</div>';
+    return html;
+  }
+
+  function renderQuickActions() {
+    var html = '<section class="quick-card" aria-label="Quick WhatsApp tools">';
+    html += '<div class="quick-header"><div><span class="quick-kicker">Quick send</span><h2>واتساب بدون حفظ الرقم</h2><p>Paste a number, optional map link and door details, then open WhatsApp.</p></div></div>';
+    html += '<label class="quick-label" for="quick-phone">رقم الجوال / WhatsApp number</label>';
+    html += '<input class="quick-input" id="quick-phone" inputmode="tel" autocomplete="tel" placeholder="مثال 0501234567">';
+    html += '<label class="quick-label" for="quick-map">رابط Google Maps أو الإحداثيات</label>';
+    html += '<textarea class="quick-input quick-area" id="quick-map" rows="2" placeholder="Paste Google Maps link or 24.7136,46.6753"></textarea>';
+    html += '<label class="quick-label" for="quick-door">رقم الباب / الشقة / الفيلا</label>';
+    html += '<input class="quick-input" id="quick-door" placeholder="مثال Villa 12 / فيلا 12">';
+    html += '<label class="quick-label" for="quick-note">ملاحظة اختيارية</label>';
+    html += '<input class="quick-input" id="quick-note" placeholder="مثال اتصل إذا وصلت">';
+    html += '<div class="quick-actions">';
+    html += '<button class="btn-share quick-primary" id="quick-open">فتح واتساب</button>';
+    html += '<button class="btn-copy quick-secondary" id="quick-copy">نسخ الرسالة</button>';
+    html += '</div>';
+    html += '<p class="quick-hint">الرقم لا ينحفظ. البيانات تبقى على جهازك.</p>';
+    html += '</section>';
     return html;
   }
 
@@ -187,6 +208,7 @@ var App = (function () {
 
   function bindListEvents() {
     initCardMaps();
+    bindQuickActions();
     var btnAdd = document.getElementById('btn-add');
     if (btnAdd) {
       btnAdd.addEventListener('click', function () {
@@ -241,6 +263,44 @@ var App = (function () {
         }
       });
     }
+  }
+
+  function bindQuickActions() {
+    var phone = document.getElementById('quick-phone');
+    var map = document.getElementById('quick-map');
+    var door = document.getElementById('quick-door');
+    var note = document.getElementById('quick-note');
+    var open = document.getElementById('quick-open');
+    var copy = document.getElementById('quick-copy');
+    if (!phone || !open || !copy) return;
+
+    function getMessage() {
+      return Utils.buildQuickMessage({
+        greeting: Storage.getSettings().greeting,
+        mapsText: map.value,
+        door: door.value,
+        note: note.value
+      });
+    }
+
+    open.addEventListener('click', function () {
+      var url = Utils.buildWhatsAppUrl(phone.value, getMessage());
+      if (!url) {
+        showToast('أدخل رقم واتساب أولاً');
+        phone.focus();
+        return;
+      }
+      window.open(url, '_blank', 'noopener');
+    });
+
+    copy.addEventListener('click', async function () {
+      try {
+        await navigator.clipboard.writeText(getMessage());
+        showToast(I18n.t('copied'));
+      } catch (err) {
+        showToast(I18n.t('shareError'));
+      }
+    });
   }
 
   // --- Install Handling ---
