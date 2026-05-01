@@ -5,6 +5,7 @@ import android.app.*;
 import android.os.*;
 import android.content.*;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.*;
 import android.graphics.drawable.*;
 import android.location.*;
@@ -99,13 +100,47 @@ public class MainActivity extends Activity {
     void shareToNumber(Card c,String phoneRaw){
         String phone=normPhone(phoneRaw); if(phone.length()<8){toast(ar?"أدخل رقم صحيح":"Enter valid number"); return;}
         try{
-            ArrayList<Uri> streams=new ArrayList<>(); Uri cardImg=makeCardImage(c); streams.add(cardImg); for(String p:c.photos) streams.add(fileProviderUri(Uri.parse(p)));
-            Intent intent=new Intent(Intent.ACTION_SEND_MULTIPLE); intent.setType("image/*"); intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM,streams); intent.putExtra(Intent.EXTRA_TEXT,message(c)); intent.putExtra("jid", phone+"@s.whatsapp.net"); intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); intent.setPackage("com.whatsapp");
-            startActivity(intent);
-        }catch(Exception e){ try{ Intent url=new Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/"+phone+"?text="+Uri.encode(message(c)))); startActivity(url); toast(ar?"واتساب فتح بالنص فقط، أرفق الصورة من المشاركة":"WhatsApp opened with text only; attach image from share if needed"); }catch(Exception ex){ toast(ar?"واتساب غير مثبت":"WhatsApp not installed"); }}
+            Uri cardImg=makeCardImage(c);
+            Intent intent=new Intent(Intent.ACTION_SEND);
+            intent.setType("image/png");
+            intent.putExtra(Intent.EXTRA_STREAM,cardImg);
+            intent.putExtra(Intent.EXTRA_TEXT,message(c));
+            intent.putExtra("jid", phone+"@s.whatsapp.net");
+            intent.setPackage("com.whatsapp");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.setClipData(ClipData.newUri(getContentResolver(),"ShareMySpot card",cardImg));
+
+            ResolveInfo wa=getBestWhatsAppActivity(intent,"com.whatsapp");
+            if(wa==null){
+                intent.setPackage("com.whatsapp.w4b");
+                wa=getBestWhatsAppActivity(intent,"com.whatsapp.w4b");
+            }
+            if(wa!=null){
+                intent.setComponent(new ComponentName(wa.activityInfo.packageName,wa.activityInfo.name));
+                grantUriPermission(wa.activityInfo.packageName,cardImg,Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivity(intent);
+                return;
+            }
+            throw new ActivityNotFoundException("WhatsApp not found");
+        }catch(Exception e){
+            try{
+                Intent url=new Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/"+phone+"?text="+Uri.encode(message(c))));
+                url.setPackage("com.whatsapp");
+                startActivity(url);
+                toast(ar?"فتح واتساب بالنص فقط. إذا لم تظهر الصورة استخدم زر المشاركة من البطاقة.":"Opened WhatsApp with text only. If image does not appear, use Android share from the card.");
+            }catch(Exception ex){ toast(ar?"واتساب غير مثبت":"WhatsApp not installed"); }
+        }
+    }
+    ResolveInfo getBestWhatsAppActivity(Intent intent,String pkg){
+        java.util.List<ResolveInfo> matches=getPackageManager().queryIntentActivities(intent,PackageManager.MATCH_DEFAULT_ONLY);
+        for(ResolveInfo r:matches) if(r.activityInfo!=null && pkg.equals(r.activityInfo.packageName) && r.activityInfo.name.toLowerCase(Locale.US).contains("contactpicker")) return r;
+        for(ResolveInfo r:matches) if(r.activityInfo!=null && pkg.equals(r.activityInfo.packageName)) return r;
+        Intent copy=new Intent(intent); copy.setPackage(null); matches=getPackageManager().queryIntentActivities(copy,PackageManager.MATCH_DEFAULT_ONLY);
+        for(ResolveInfo r:matches) if(r.activityInfo!=null && pkg.equals(r.activityInfo.packageName)) return r;
+        return null;
     }
     Uri fileProviderUri(Uri u){ if("file".equals(u.getScheme())) return FileProvider.getUriForFile(this,getPackageName()+".fileprovider",new File(u.getPath())); return u; }
-    Uri makeCardImage(Card c)throws Exception{ Bitmap bm=Bitmap.createBitmap(1080,1350,Bitmap.Config.ARGB_8888); Canvas cn=new Canvas(bm); Paint p=new Paint(Paint.ANTI_ALIAS_FLAG); p.setColor(bg); cn.drawRect(0,0,1080,1350,p); p.setColor(teal); cn.drawRoundRect(50,50,1030,260,36,36,p); p.setColor(Color.WHITE); p.setTextSize(62); p.setTypeface(Typeface.DEFAULT_BOLD); cn.drawText(c.name,90,145,p); p.setTextSize(34); cn.drawText("ShareMySpot / شارك موقعي",90,210,p); p.setColor(Color.WHITE); cn.drawRoundRect(50,310,1030,560,28,28,p); p.setColor(Color.rgb(20,30,30)); p.setTextSize(38); cn.drawText("📍 https://maps.google.com/?q="+c.lat+","+c.lng,90,390,p); p.setTextSize(40); if(c.door.length()>0) cn.drawText("🚪 "+c.door,90,470,p); int y=610; for(int i=0;i<Math.min(2,c.photos.size());i++){ Bitmap img=BitmapFactory.decodeStream(getContentResolver().openInputStream(Uri.parse(c.photos.get(i)))); if(img!=null){ Rect dst=new Rect(i==0?70:555,y,i==0?525:1010,y+520); cn.drawBitmap(img,null,dst,p); }} File f=new File(getCacheDir(),"sharemyspot_card.png"); FileOutputStream out=new FileOutputStream(f); bm.compress(Bitmap.CompressFormat.PNG,90,out); out.close(); return FileProvider.getUriForFile(this,getPackageName()+".fileprovider",f); }
+    Uri makeCardImage(Card c)throws Exception{ Bitmap bm=Bitmap.createBitmap(1080,1350,Bitmap.Config.ARGB_8888); Canvas cn=new Canvas(bm); Paint p=new Paint(Paint.ANTI_ALIAS_FLAG); p.setColor(bg); cn.drawRect(0,0,1080,1350,p); p.setColor(teal); cn.drawRoundRect(50,50,1030,260,36,36,p); p.setColor(Color.WHITE); p.setTextSize(62); p.setTypeface(Typeface.DEFAULT_BOLD); cn.drawText(c.name,90,145,p); p.setTextSize(34); cn.drawText("ShareMySpot / شارك موقعي",90,210,p); p.setColor(Color.WHITE); cn.drawRoundRect(50,310,1030,560,28,28,p); p.setColor(Color.rgb(20,30,30)); p.setTextSize(38); cn.drawText("📍 https://maps.google.com/?q="+c.lat+","+c.lng,90,390,p); p.setTextSize(40); if(c.door.length()>0) cn.drawText("🚪 "+c.door,90,470,p); int y=610; for(int i=0;i<Math.min(2,c.photos.size());i++){ Bitmap img=BitmapFactory.decodeStream(getContentResolver().openInputStream(Uri.parse(c.photos.get(i)))); if(img!=null){ Rect dst=new Rect(i==0?70:555,y,i==0?525:1010,y+520); cn.drawBitmap(img,null,dst,p); }} File f=new File(getCacheDir(),"sharemyspot_card.png"); FileOutputStream out=new FileOutputStream(f); bm.compress(Bitmap.CompressFormat.PNG,95,out); out.close(); return FileProvider.getUriForFile(this,getPackageName()+".fileprovider",f); }
 
     void load(){ try{ JSONArray a=new JSONArray(getPreferences(0).getString("cards","[]")); for(int i=0;i<a.length();i++){ JSONObject o=a.getJSONObject(i); Card c=new Card(); c.id=o.getString("id"); c.name=o.getString("name"); c.door=o.optString("door",""); c.address=o.optString("address",""); c.lat=o.optDouble("lat",24.7136); c.lng=o.optDouble("lng",46.6753); JSONArray ps=o.optJSONArray("photos"); if(ps!=null) for(int j=0;j<ps.length();j++) c.photos.add(ps.getString(j)); cards.add(c);} }catch(Exception e){} }
     void persist(){ try{ JSONArray a=new JSONArray(); for(Card c:cards){ JSONObject o=new JSONObject(); o.put("id",c.id);o.put("name",c.name);o.put("door",c.door);o.put("address",c.address);o.put("lat",c.lat);o.put("lng",c.lng); JSONArray ps=new JSONArray(); for(String p:c.photos) ps.put(p); o.put("photos",ps); a.put(o);} getPreferences(0).edit().putString("cards",a.toString()).apply(); }catch(Exception e){} }
