@@ -1271,3 +1271,23 @@ body {
   color: var(--wa-teal-dark);
   min-height: 50px;
 }
+
+
+.release-badge {
+  display: inline-flex;
+  margin-inline-start: 8px;
+  vertical-align: middle;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #25D366;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.card-buttons .btn-share {
+  min-height: 54px;
+  font-size: 0.98rem;
+  font-weight: 900;
+}

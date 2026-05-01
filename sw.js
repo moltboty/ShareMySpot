@@ -2,7 +2,7 @@
 // ShareMySpot — Service Worker
 // ========================================
 
-var CACHE_NAME = 'sharemyspot-v15';
+var CACHE_NAME = 'sharemyspot-v16';
 var ASSETS = [
   './',
   './index.html',
@@ -41,8 +41,23 @@ self.addEventListener('activate', function (e) {
   self.clients.claim();
 });
 
-// Fetch — cache-first strategy
+// Fetch — network-first for pages/scripts so testers see new releases immediately.
 self.addEventListener('fetch', function (e) {
+  var requestUrl = new URL(e.request.url);
+  var isNavigation = e.request.mode === 'navigate' || e.request.destination === 'document';
+  var hasCacheBuster = requestUrl.search && requestUrl.search.length > 0;
+
+  if (isNavigation || hasCacheBuster) {
+    e.respondWith(
+      fetch(e.request).catch(function () {
+        return caches.match(e.request).then(function (cached) {
+          return cached || caches.match('./index.html');
+        });
+      })
+    );
+    return;
+  }
+
   e.respondWith(
     caches.match(e.request).then(function (cached) {
       return cached || fetch(e.request);

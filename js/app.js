@@ -100,7 +100,7 @@ var App = (function () {
     var html = '<div class="view-list">';
     html += '<header class="app-header"><div class="header-top">';
     html += '<img src="icons/icon-192.png" class="header-logo" alt="">';
-    html += '<h1 class="app-title">' + t('appName') + ' <span class="app-title-sub">/ ' + t('appNameAr') + '</span></h1>';
+    html += '<h1 class="app-title">' + t('appName') + ' <span class="app-title-sub">/ ' + t('appNameAr') + '</span><span class="release-badge">FULL CARD v16</span></h1>';
     html += '<div class="header-actions">';
     html += '<button class="theme-toggle" id="btn-theme">' + getThemeIcon() + '</button>';
     html += '<button class="btn-icon" id="btn-lang">' + (lang === 'en' ? 'عر' : 'EN') + '</button>';
@@ -148,8 +148,8 @@ var App = (function () {
         html += '</div></div>';
         html += '</div>';
         html += '<div class="card-buttons">';
-        html += '<button class="btn-share" data-id="' + loc.id + '">📤 ' + t('shareWhatsApp') + '</button>';
-        html += '<button class="btn-copy" data-id="' + loc.id + '">📋 ' + t('copyToClipboard') + '</button>';
+        html += '<button class="btn-share" data-id="' + loc.id + '">📤 Share full card + photos</button>';
+        html += '<button class="btn-copy" data-id="' + loc.id + '">📋 Backup copy/download</button>';
         html += '</div>';
         html += '</div>';
       }
@@ -178,7 +178,7 @@ var App = (function () {
     var html = '<section class="add-home-card">';
     html += '<div class="add-home-icon">🏠</div>';
     html += '<h2>Create your Home card / أضف بطاقة البيت</h2>';
-    html += '<p>Search your place using the map API, pin it, add up to 2 door photos, then share everything to WhatsApp.</p>';
+    html += '<p><b>Working flow:</b> search/pin your home, add 2 photos, save, then tap <b>Share full card + photos</b>. It shares an image card + original photos + map text.</p>';
     html += '<button class="btn-save add-home-btn" id="btn-add-home">+ Add Home Card</button>';
     html += '</section>';
     return html;
