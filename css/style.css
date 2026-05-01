@@ -1320,3 +1320,11 @@ body {
   font-weight: 900;
   font-size: 0.95rem;
 }
+
+
+.btn-send-number::after {
+  content: ' (copies text + tries image)';
+  font-weight: 700;
+  opacity: 0.88;
+  font-size: 0.78rem;
+}

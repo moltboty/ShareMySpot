@@ -100,7 +100,7 @@ var App = (function () {
     var html = '<div class="view-list">';
     html += '<header class="app-header"><div class="header-top">';
     html += '<img src="icons/icon-192.png" class="header-logo" alt="">';
-    html += '<h1 class="app-title">' + t('appName') + ' <span class="app-title-sub">/ ' + t('appNameAr') + '</span><span class="release-badge">FULL CARD v17</span></h1>';
+    html += '<h1 class="app-title">' + t('appName') + ' <span class="app-title-sub">/ ' + t('appNameAr') + '</span><span class="release-badge">FULL CARD v18</span></h1>';
     html += '<div class="header-actions">';
     html += '<button class="theme-toggle" id="btn-theme">' + getThemeIcon() + '</button>';
     html += '<button class="btn-icon" id="btn-lang">' + (lang === 'en' ? 'عر' : 'EN') + '</button>';
@@ -149,7 +149,7 @@ var App = (function () {
         html += '</div>';
         html += '<div class="card-send-box">';
         html += '<input class="card-phone-input" data-id="' + loc.id + '" inputmode="tel" autocomplete="tel" placeholder="Paste delivery driver WhatsApp number / رقم السائق">';
-        html += '<button class="btn-send-number" data-id="' + loc.id + '">Open this number with card</button>';
+        html += '<button class="btn-send-number" data-id="' + loc.id + '">Open number + copy card</button>';
         html += '</div>';
         html += '<div class="card-buttons">';
         html += '<button class="btn-share" data-id="' + loc.id + '">📤 Share full card + photos</button>';
