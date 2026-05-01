@@ -203,6 +203,41 @@ var Share = (function () {
     }));
   }
 
+
+  async function prepareForNumber(locationId, phoneRaw) {
+    var loc = Storage.getLocationById(locationId);
+    if (!loc) return false;
+    var url = Utils.buildWhatsAppUrl(phoneRaw, buildMessage(loc));
+    if (!url) {
+      App.showToast('أدخل رقم واتساب صحيح');
+      return false;
+    }
+
+    var message = buildMessage(loc);
+    try { await navigator.clipboard.writeText(message); } catch (err) {}
+
+    var images = getLocationImages(loc);
+    if (images.length) {
+      try {
+        var cardDataUrl = await buildCardImage(loc);
+        var a = document.createElement('a');
+        a.href = cardDataUrl;
+        a.download = (loc.name || 'sharemyspot') + '-full-card.jpg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        App.showToast('Card copied/downloaded. Opening WhatsApp...');
+      } catch (err) {
+        App.showToast('Message copied. Opening WhatsApp...');
+      }
+    } else {
+      App.showToast('Message copied. Opening WhatsApp...');
+    }
+
+    setTimeout(function () { window.open(url, '_blank', 'noopener'); }, 350);
+    return true;
+  }
+
   async function copyLocation(locationId) {
     var loc = Storage.getLocationById(locationId);
     if (!loc) return;
@@ -232,6 +267,7 @@ var Share = (function () {
 
   return {
     shareLocation: shareLocation,
+    prepareForNumber: prepareForNumber,
     copyLocation: copyLocation,
     handleImageUpload: handleImageUpload,
     handleImageUploads: handleImageUploads
