@@ -8,6 +8,7 @@ var App = (function () {
   var currentView = 'list';
   var editingId = null;
   var currentImageData = null;
+  var currentImagesData = [];
   var deferredPrompt = null;
   var wizardStep = 0;
   var wizardData = {};
@@ -106,6 +107,9 @@ var App = (function () {
     html += '<button class="btn-icon" id="btn-settings">⚙️</button>';
     html += '</div></div></header>';
 
+    if (locations.length === 0) {
+      html += renderAddHomeCard();
+    }
     html += renderQuickActions();
 
     if (locations.length === 0) {
@@ -123,8 +127,13 @@ var App = (function () {
         if (loc.lat && loc.lng) {
           html += '<div class="card-map" id="card-map-' + loc.id + '" data-lat="' + loc.lat + '" data-lng="' + loc.lng + '"></div>';
         }
-        if (loc.image) {
-          html += '<div class="card-thumb"><img src="' + loc.image + '" alt=""></div>';
+        var locImages = getStoredImages(loc);
+        if (locImages.length) {
+          html += '<div class="card-thumbs">';
+          for (var imgIdx = 0; imgIdx < locImages.length; imgIdx++) {
+            html += '<div class="card-thumb"><img src="' + (locImages[imgIdx].dataUrl || locImages[imgIdx]) + '" alt=""></div>';
+          }
+          html += '</div>';
         }
         html += '<div class="card-body">';
         html += '<div class="card-header"><div>';
@@ -165,6 +174,16 @@ var App = (function () {
     return html;
   }
 
+  function renderAddHomeCard() {
+    var html = '<section class="add-home-card">';
+    html += '<div class="add-home-icon">🏠</div>';
+    html += '<h2>Create your Home card / أضف بطاقة البيت</h2>';
+    html += '<p>Search your place using the map API, pin it, add up to 2 door photos, then share everything to WhatsApp.</p>';
+    html += '<button class="btn-save add-home-btn" id="btn-add-home">+ Add Home Card</button>';
+    html += '</section>';
+    return html;
+  }
+
   function renderQuickActions() {
     var html = '<section class="quick-card" aria-label="Quick WhatsApp tools">';
     html += '<div class="quick-header"><div><span class="quick-kicker">Quick send</span><h2>واتساب بدون حفظ الرقم</h2><p>Paste a number, optional map link and door details, then open WhatsApp.</p></div></div>';
@@ -177,7 +196,7 @@ var App = (function () {
     html += '<label class="quick-label" for="quick-note">ملاحظة اختيارية</label>';
     html += '<input class="quick-input" id="quick-note" placeholder="مثال اتصل إذا وصلت">';
     html += '<div class="quick-actions">';
-    html += '<button class="btn-share quick-primary" id="quick-open">فتح واتساب</button>';
+    html += '<button class="quick-primary" id="quick-open">فتح واتساب</button>';
     html += '<button class="btn-copy quick-secondary" id="quick-copy">نسخ الرسالة</button>';
     html += '</div>';
     html += '<p class="quick-hint">الرقم لا ينحفظ. البيانات تبقى على جهازك.</p>';
@@ -209,16 +228,18 @@ var App = (function () {
   function bindListEvents() {
     initCardMaps();
     bindQuickActions();
-    var btnAdd = document.getElementById('btn-add');
-    if (btnAdd) {
-      btnAdd.addEventListener('click', function () {
-        wizardStep = 0;
-        wizardData = {};
-        currentImageData = null;
-        currentView = 'wizard';
-        renderCurrentView();
-      });
+    function startWizard() {
+      wizardStep = 0;
+      wizardData = {};
+      currentImageData = null;
+      currentImagesData = [];
+      currentView = 'wizard';
+      renderCurrentView();
     }
+    var btnAdd = document.getElementById('btn-add');
+    if (btnAdd) btnAdd.addEventListener('click', startWizard);
+    var btnAddHome = document.getElementById('btn-add-home');
+    if (btnAddHome) btnAddHome.addEventListener('click', startWizard);
     document.getElementById('btn-settings').addEventListener('click', function () { showView('settings'); });
     document.getElementById('btn-theme').addEventListener('click', toggleTheme);
 
@@ -404,6 +425,10 @@ var App = (function () {
       html += '<div class="wiz-icon">📍</div>';
       html += '<h2 class="wiz-title">' + t('wizGpsTitle') + '</h2>';
       html += '<p class="wiz-subtitle">' + t('wizGpsSub') + '</p>';
+      html += '<div class="map-search-row">';
+      html += '<input type="search" class="map-search-input" id="wiz-map-search" placeholder="Search your home, building, compound...">';
+      html += '<button type="button" class="map-search-btn" id="wiz-map-search-btn">🔎 Find</button>';
+      html += '</div>';
       html += '<button type="button" class="btn-gps wiz-gps-btn" id="wiz-gps">📍 ' + t('useMyLocation') + '</button>';
       html += '<input type="hidden" id="wiz-lat" value="' + (wizardData.lat || '') + '">';
       html += '<input type="hidden" id="wiz-lng" value="' + (wizardData.lng || '') + '">';
@@ -417,23 +442,9 @@ var App = (function () {
       html += '<div class="wiz-icon">📷</div>';
       html += '<h2 class="wiz-title">' + t('wizPhotoTitle') + '</h2>';
       html += '<p class="wiz-subtitle">' + t('wizPhotoSub') + '</p>';
-      html += '<input type="file" id="wiz-image-input" accept="image/*" style="display:none">';
-      if (currentImageData) {
-        html += '<div class="image-preview" id="wiz-image-preview">';
-        html += '<img src="' + currentImageData + '" alt="">';
-        html += '<div class="image-actions">';
-        html += '<button type="button" class="btn-sm" id="wiz-change-photo">' + t('changePhoto') + '</button>';
-        html += '<button type="button" class="btn-sm btn-danger" id="wiz-remove-photo">' + t('removePhoto') + '</button>';
-        html += '</div></div>';
-      } else {
-        html += '<button type="button" class="btn-upload wiz-upload-btn" id="wiz-upload">📷 ' + t('tapToAddPhoto') + '</button>';
-        html += '<div class="image-preview" id="wiz-image-preview" style="display:none">';
-        html += '<img src="" alt="">';
-        html += '<div class="image-actions">';
-        html += '<button type="button" class="btn-sm" id="wiz-change-photo">' + t('changePhoto') + '</button>';
-        html += '<button type="button" class="btn-sm btn-danger" id="wiz-remove-photo">' + t('removePhoto') + '</button>';
-        html += '</div></div>';
-      }
+      html += '<input type="file" id="wiz-image-input" accept="image/*" multiple style="display:none">';
+      html += '<button type="button" class="btn-upload wiz-upload-btn" id="wiz-upload">📷 Add up to 2 photos / أضف صورتين</button>';
+      html += renderImagePreviewHtml('wiz-image-preview', currentImagesData);
       html += '</div>';
     }
 
@@ -535,6 +546,28 @@ var App = (function () {
         }
       });
 
+      bindMapSearch('wiz-map-search', 'wiz-map-search-btn', function (lat, lng, label) {
+        wLat.value = lat.toFixed(6);
+        wLng.value = lng.toFixed(6);
+        wizardData.lat = wLat.value;
+        wizardData.lng = wLng.value;
+        wizMap.setView([lat, lng], 16);
+        if (wizMarker) {
+          wizMarker.setLatLng([lat, lng]);
+        } else {
+          wizMarker = L.marker([lat, lng], { draggable: true }).addTo(wizMap);
+          wizMarker.on('dragend', function () {
+            var pos = wizMarker.getLatLng();
+            wLat.value = pos.lat.toFixed(6);
+            wLng.value = pos.lng.toFixed(6);
+            wizardData.lat = wLat.value;
+            wizardData.lng = wLng.value;
+            preview.textContent = '✅ ' + t('locationSaved') + ' — ' + pos.lat.toFixed(4) + ', ' + pos.lng.toFixed(4);
+          });
+        }
+        preview.textContent = '✅ ' + (label || t('locationSaved')) + ' — ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
+      });
+
       document.getElementById('wiz-gps').addEventListener('click', function () {
         var btn = this;
         if (!navigator.geolocation) {
@@ -582,34 +615,7 @@ var App = (function () {
     }
 
     if (step === 'photo') {
-      var fImage = document.getElementById('wiz-image-input');
-      var btnUpload = document.getElementById('wiz-upload');
-      var btnChange = document.getElementById('wiz-change-photo');
-      var btnRemove = document.getElementById('wiz-remove-photo');
-      var imagePreview = document.getElementById('wiz-image-preview');
-
-      function triggerUpload() { fImage.click(); }
-      if (btnUpload) btnUpload.addEventListener('click', triggerUpload);
-      if (btnChange) btnChange.addEventListener('click', triggerUpload);
-      if (btnRemove) {
-        btnRemove.addEventListener('click', function () {
-          currentImageData = null;
-          fImage.value = '';
-          imagePreview.style.display = 'none';
-          if (btnUpload) btnUpload.style.display = '';
-        });
-      }
-
-      fImage.addEventListener('change', function () {
-        if (this.files && this.files[0]) {
-          Share.handleImageUpload(this.files[0]).then(function (dataUrl) {
-            currentImageData = dataUrl;
-            imagePreview.querySelector('img').src = dataUrl;
-            imagePreview.style.display = '';
-            if (btnUpload) btnUpload.style.display = 'none';
-          });
-        }
-      });
+      bindMultiImagePicker('wiz-image-input', 'wiz-upload', 'wiz-image-preview');
     }
 
     // Next button
@@ -649,8 +655,9 @@ var App = (function () {
           doorNumber: wizardData.doorNumber || '',
           instructions: '',
           instructionsAr: '',
-          image: currentImageData,
-          imageName: currentImageData ? 'location.jpg' : null
+          images: currentImagesData,
+          image: currentImagesData[0] ? currentImagesData[0].dataUrl : currentImageData,
+          imageName: currentImagesData[0] ? currentImagesData[0].name : (currentImageData ? 'location.jpg' : null)
         };
 
         Storage.addLocation(data);
@@ -699,7 +706,8 @@ var App = (function () {
   function renderForm() {
     var t = I18n.t;
     var loc = Storage.getLocationById(editingId) || {};
-    currentImageData = (loc && loc.image) || null;
+    currentImagesData = getStoredImages(loc);
+    currentImageData = currentImagesData[0] ? currentImagesData[0].dataUrl : ((loc && loc.image) || null);
 
     var html = '<div class="view-form">';
     html += '<header class="app-header">';
@@ -722,6 +730,10 @@ var App = (function () {
     html += '<div class="form-section">';
     html += '<div class="form-section-title">' + t('mapLocation') + '</div>';
     html += '<div class="form-group">';
+    html += '<div class="map-search-row">';
+    html += '<input type="search" class="map-search-input" id="form-map-search" placeholder="Search your home, building, compound...">';
+    html += '<button type="button" class="map-search-btn" id="form-map-search-btn">🔎 Find</button>';
+    html += '</div>';
     html += '<button type="button" class="btn-gps" id="btn-gps">📍 ' + t('useMyLocation') + '</button>';
     html += '<input type="hidden" id="f-lat" value="' + (loc.lat || '') + '">';
     html += '<input type="hidden" id="f-lng" value="' + (loc.lng || '') + '">';
@@ -734,25 +746,11 @@ var App = (function () {
     html += '<div class="form-section">';
     html += '<div class="form-section-title">' + t('photoSection') + '</div>';
     html += '<div class="form-group">';
-    html += '<input type="file" id="f-image" accept="image/*" style="display:none">';
-    if (currentImageData) {
-      html += '<div class="image-preview" id="image-preview">';
-      html += '<img src="' + currentImageData + '" alt="">';
-      html += '<div class="image-actions">';
-      html += '<button type="button" class="btn-sm" id="btn-change-photo">' + t('changePhoto') + '</button>';
-      html += '<button type="button" class="btn-sm btn-danger" id="btn-remove-photo">' + t('removePhoto') + '</button>';
-      html += '</div></div>';
-    } else {
-      html += '<div class="image-upload" id="image-upload">';
-      html += '<button type="button" class="btn-upload" id="btn-upload">📷 ' + t('tapToAddPhoto') + '</button>';
-      html += '</div>';
-      html += '<div class="image-preview" id="image-preview" style="display:none">';
-      html += '<img src="" alt="">';
-      html += '<div class="image-actions">';
-      html += '<button type="button" class="btn-sm" id="btn-change-photo">' + t('changePhoto') + '</button>';
-      html += '<button type="button" class="btn-sm btn-danger" id="btn-remove-photo">' + t('removePhoto') + '</button>';
-      html += '</div></div>';
-    }
+    html += '<input type="file" id="f-image" accept="image/*" multiple style="display:none">';
+    html += '<div class="image-upload" id="image-upload">';
+    html += '<button type="button" class="btn-upload" id="btn-upload">📷 Add up to 2 photos / أضف صورتين</button>';
+    html += '</div>';
+    html += renderImagePreviewHtml('image-preview', currentImagesData);
     html += '</div>';
     html += '</div>';
 
@@ -839,6 +837,24 @@ var App = (function () {
     btnBack.addEventListener('click', function () { showView('list'); });
     btnCancel.addEventListener('click', function () { showView('list'); });
 
+    bindMapSearch('form-map-search', 'form-map-search-btn', function (lat, lng, label) {
+      fLat.value = lat.toFixed(6);
+      fLng.value = lng.toFixed(6);
+      formMap.setView([lat, lng], 16);
+      if (formMarker) {
+        formMarker.setLatLng([lat, lng]);
+      } else {
+        formMarker = L.marker([lat, lng], { draggable: true }).addTo(formMap);
+        formMarker.on('dragend', function () {
+          var p = formMarker.getLatLng();
+          fLat.value = p.lat.toFixed(6);
+          fLng.value = p.lng.toFixed(6);
+          updateGpsPreview();
+        });
+      }
+      updateGpsPreview(label);
+    });
+
     // GPS
     btnGps.addEventListener('click', function () {
       if (!navigator.geolocation) {
@@ -880,35 +896,8 @@ var App = (function () {
       );
     });
 
-    // Image
-    var btnUpload = document.getElementById('btn-upload');
-    var btnChange = document.getElementById('btn-change-photo');
-    var btnRemove = document.getElementById('btn-remove-photo');
-    var imagePreview = document.getElementById('image-preview');
-    var imageUpload = document.getElementById('image-upload');
-
-    function triggerUpload() { fImage.click(); }
-    if (btnUpload) btnUpload.addEventListener('click', triggerUpload);
-    if (btnChange) btnChange.addEventListener('click', triggerUpload);
-    if (btnRemove) {
-      btnRemove.addEventListener('click', function () {
-        currentImageData = null;
-        fImage.value = '';
-        imagePreview.style.display = 'none';
-        if (imageUpload) imageUpload.style.display = '';
-      });
-    }
-
-    fImage.addEventListener('change', function () {
-      if (this.files && this.files[0]) {
-        Share.handleImageUpload(this.files[0]).then(function (dataUrl) {
-          currentImageData = dataUrl;
-          imagePreview.querySelector('img').src = dataUrl;
-          imagePreview.style.display = '';
-          if (imageUpload) imageUpload.style.display = 'none';
-        });
-      }
-    });
+    // Images
+    bindMultiImagePicker('f-image', 'btn-upload', 'image-preview');
 
     // Save
     form.addEventListener('submit', function (e) {
@@ -929,8 +918,9 @@ var App = (function () {
         doorNumber: document.getElementById('f-doorNumber').value.trim(),
         instructions: '',
         instructionsAr: '',
-        image: currentImageData,
-        imageName: currentImageData ? 'location.jpg' : null
+        images: currentImagesData,
+        image: currentImagesData[0] ? currentImagesData[0].dataUrl : currentImageData,
+        imageName: currentImagesData[0] ? currentImagesData[0].name : (currentImageData ? 'location.jpg' : null)
       };
 
       Storage.updateLocation(editingId, data);
@@ -938,15 +928,101 @@ var App = (function () {
     });
   }
 
-  function updateGpsPreview() {
+  function updateGpsPreview(label) {
     var lat = document.getElementById('f-lat').value;
     var lng = document.getElementById('f-lng').value;
     var preview = document.getElementById('gps-preview');
     if (lat && lng) {
-      preview.textContent = '✅ ' + I18n.t('locationSaved') + ' — ' + parseFloat(lat).toFixed(4) + ', ' + parseFloat(lng).toFixed(4);
+      preview.textContent = '✅ ' + (label || I18n.t('locationSaved')) + ' — ' + parseFloat(lat).toFixed(4) + ', ' + parseFloat(lng).toFixed(4);
     } else {
       preview.textContent = '';
     }
+  }
+
+
+  function getStoredImages(loc) {
+    if (!loc) return [];
+    if (Array.isArray(loc.images) && loc.images.length) return loc.images.slice(0, 2);
+    return loc.image ? [{ dataUrl: loc.image, name: loc.imageName || 'location.jpg' }] : [];
+  }
+
+  function renderImagePreviewHtml(id, images) {
+    var html = '<div class="image-preview multi-image-preview" id="' + id + '"' + (!images.length ? ' style="display:none"' : '') + '>';
+    html += '<div class="image-grid">';
+    for (var i = 0; i < images.length; i++) {
+      html += '<div class="image-tile"><img src="' + (images[i].dataUrl || images[i]) + '" alt=""></div>';
+    }
+    html += '</div>';
+    html += '<div class="image-actions">';
+    html += '<button type="button" class="btn-sm btn-change-photos">Change photos</button>';
+    html += '<button type="button" class="btn-sm btn-danger btn-remove-photos">Remove photos</button>';
+    html += '</div></div>';
+    return html;
+  }
+
+  function refreshImagePreview(previewId) {
+    var preview = document.getElementById(previewId);
+    if (!preview) return;
+    var grid = preview.querySelector('.image-grid');
+    grid.innerHTML = '';
+    for (var i = 0; i < currentImagesData.length; i++) {
+      var tile = document.createElement('div');
+      tile.className = 'image-tile';
+      tile.innerHTML = '<img src="' + (currentImagesData[i].dataUrl || currentImagesData[i]) + '" alt="">';
+      grid.appendChild(tile);
+    }
+    preview.style.display = currentImagesData.length ? '' : 'none';
+  }
+
+  function bindMultiImagePicker(inputId, uploadBtnId, previewId) {
+    var input = document.getElementById(inputId);
+    var upload = document.getElementById(uploadBtnId);
+    var preview = document.getElementById(previewId);
+    if (!input || !upload || !preview) return;
+    function triggerUpload() { input.click(); }
+    upload.addEventListener('click', triggerUpload);
+    var change = preview.querySelector('.btn-change-photos');
+    var remove = preview.querySelector('.btn-remove-photos');
+    if (change) change.addEventListener('click', triggerUpload);
+    if (remove) remove.addEventListener('click', function () {
+      currentImagesData = [];
+      currentImageData = null;
+      input.value = '';
+      refreshImagePreview(previewId);
+    });
+    input.addEventListener('change', function () {
+      if (this.files && this.files.length) {
+        Share.handleImageUploads(this.files).then(function (images) {
+          currentImagesData = images.slice(0, 2);
+          currentImageData = currentImagesData[0] ? currentImagesData[0].dataUrl : null;
+          refreshImagePreview(previewId);
+          showToast('✅ Added ' + currentImagesData.length + ' photo(s)');
+        });
+      }
+    });
+  }
+
+  function bindMapSearch(inputId, buttonId, onSelect) {
+    var input = document.getElementById(inputId);
+    var button = document.getElementById(buttonId);
+    if (!input || !button) return;
+    function runSearch() {
+      var q = input.value.trim();
+      if (!q) { showToast('Type a place/home name first'); return; }
+      button.disabled = true;
+      button.textContent = 'Searching...';
+      fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=' + encodeURIComponent(q))
+        .then(function (res) { return res.json(); })
+        .then(function (items) {
+          if (!items || !items.length) { showToast('No place found'); return; }
+          var item = items[0];
+          onSelect(parseFloat(item.lat), parseFloat(item.lon), item.display_name.split(',').slice(0, 2).join(','));
+        })
+        .catch(function () { showToast('Search failed. Try Use My Location or tap map.'); })
+        .finally(function () { button.disabled = false; button.textContent = '🔎 Find'; });
+    }
+    button.addEventListener('click', runSearch);
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); runSearch(); } });
   }
 
   // --- Settings View ---

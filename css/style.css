@@ -1124,6 +1124,13 @@ body {
   font-weight: 800;
 }
 
+.quick-primary {
+  border: 0;
+  background: var(--wa-green);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
 .quick-secondary {
   background: var(--surface-2);
   color: var(--text);
@@ -1145,3 +1152,122 @@ body {
   }
 }
 
+
+
+/* --- Restored map search + two-photo sharing UX --- */
+.map-search-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.map-search-input {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--input-bg);
+  color: var(--text);
+  padding: 12px 13px;
+  font: inherit;
+}
+
+.map-search-input:focus {
+  outline: none;
+  border-color: var(--wa-green);
+  box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.14);
+}
+
+.map-search-btn {
+  border: 0;
+  border-radius: 14px;
+  background: var(--wa-teal-dark);
+  color: #fff;
+  font-weight: 800;
+  padding: 0 14px;
+  min-height: 46px;
+}
+
+.map-search-btn:disabled {
+  opacity: 0.65;
+}
+
+.card-thumbs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 10px 10px 0;
+}
+
+.card-thumbs .card-thumb {
+  margin: 0;
+  height: 118px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.multi-image-preview {
+  margin-top: 12px;
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.image-tile {
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--surface-2);
+  min-height: 150px;
+  border: 1px solid var(--border);
+}
+
+.image-tile img {
+  width: 100%;
+  height: 100%;
+  min-height: 150px;
+  object-fit: cover;
+  display: block;
+}
+
+@media (max-width: 360px) {
+  .map-search-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.add-home-card {
+  margin: 16px;
+  padding: 20px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, var(--wa-green), var(--wa-teal-dark));
+  color: #fff;
+  box-shadow: var(--shadow-lg);
+}
+
+.add-home-icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.add-home-card h2 {
+  font-size: 1.35rem;
+  line-height: 1.25;
+  margin-bottom: 8px;
+}
+
+.add-home-card p {
+  opacity: 0.94;
+  margin-bottom: 16px;
+  font-size: 0.94rem;
+}
+
+.add-home-btn {
+  width: 100%;
+  background: #fff;
+  color: var(--wa-teal-dark);
+  min-height: 50px;
+}

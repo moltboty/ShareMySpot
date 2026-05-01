@@ -34,6 +34,12 @@ var Share = (function () {
     return message;
   }
 
+  function getLocationImages(loc) {
+    if (!loc) return [];
+    if (Array.isArray(loc.images) && loc.images.length) return loc.images.slice(0, 2);
+    return loc.image ? [{ dataUrl: loc.image, name: loc.imageName || 'location.jpg' }] : [];
+  }
+
   async function shareLocation(locationId) {
     var loc = Storage.getLocationById(locationId);
     if (!loc) return;
@@ -41,11 +47,14 @@ var Share = (function () {
     var message = buildMessage(loc);
     var shareData = { text: message };
 
-    // Add image if exists
-    if (loc.image) {
-      var file = dataURLtoFile(loc.image, loc.imageName || 'location.jpg');
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        shareData.files = [file];
+    var images = getLocationImages(loc);
+    if (images.length) {
+      var files = [];
+      for (var i = 0; i < images.length; i++) {
+        files.push(dataURLtoFile(images[i].dataUrl || images[i], images[i].name || ('location-' + (i + 1) + '.jpg')));
+      }
+      if (navigator.canShare && navigator.canShare({ files: files })) {
+        shareData.files = files;
       }
     }
 
@@ -89,20 +98,32 @@ var Share = (function () {
     });
   }
 
+  function handleImageUploads(fileList) {
+    var files = Array.prototype.slice.call(fileList || []).slice(0, 2);
+    return Promise.all(files.map(function (file, index) {
+      return handleImageUpload(file).then(function (dataUrl) {
+        return { dataUrl: dataUrl, name: file.name || ('location-' + (index + 1) + '.jpg') };
+      });
+    }));
+  }
+
   async function copyLocation(locationId) {
     var loc = Storage.getLocationById(locationId);
     if (!loc) return;
     var message = buildMessage(loc);
     try {
       await navigator.clipboard.writeText(message);
-      if (loc.image) {
-        // Download the photo so user can attach it in WhatsApp
-        var a = document.createElement('a');
-        a.href = loc.image;
-        a.download = (loc.name || 'location') + '.jpg';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+      var images = getLocationImages(loc);
+      if (images.length) {
+        // Download photos so user can attach them in WhatsApp when Web Share is unavailable.
+        for (var i = 0; i < images.length; i++) {
+          var a = document.createElement('a');
+          a.href = images[i].dataUrl || images[i];
+          a.download = images[i].name || ((loc.name || 'location') + '-' + (i + 1) + '.jpg');
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
         App.showToast(I18n.t('copiedWithPhoto'));
       } else {
         App.showToast(I18n.t('copied'));
@@ -115,6 +136,7 @@ var Share = (function () {
   return {
     shareLocation: shareLocation,
     copyLocation: copyLocation,
-    handleImageUpload: handleImageUpload
+    handleImageUpload: handleImageUpload,
+    handleImageUploads: handleImageUploads
   };
 })();
