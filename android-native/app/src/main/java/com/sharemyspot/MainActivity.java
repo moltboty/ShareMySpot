@@ -29,7 +29,7 @@ import java.util.*;
 public class MainActivity extends Activity {
     int green = Color.rgb(37,211,102), teal = Color.rgb(7,94,84), bg = Color.rgb(246,248,247);
     LinearLayout root, tabBar, page; boolean ar=false; int activeTab=0; ArrayList<Card> cards=new ArrayList<>();
-    EditText nameEt, searchEt, doorEt, phoneEt; TextView coordTxt; LinearLayout photoRow; ArrayList<Uri> tempPhotos=new ArrayList<>(); double selLat=24.7136, selLng=46.6753; String selAddress="Riyadh";
+    EditText nameEt, searchEt, doorEt, phoneEt; TextView coordTxt, pickerCoordTxt; LinearLayout photoRow; ArrayList<Uri> tempPhotos=new ArrayList<>(); double selLat=24.7136, selLng=46.6753, pickerLat=24.7136, pickerLng=46.6753; String selAddress="Riyadh"; WebView pickerWeb; boolean gpsForPicker=false;
     static final int PICK=77, REQ_LOC=88;
 
     static class Card { String id,name,door,address; double lat,lng; ArrayList<String> photos=new ArrayList<>(); }
@@ -60,10 +60,9 @@ public class MainActivity extends Activity {
         add(page,tv(ar?"أنشئ بطاقة موقعك":"Create your location card",22,Color.rgb(20,30,30),Typeface.BOLD));
         add(page,tv(ar?"أضف الاسم، حدد الموقع من الخريطة، أرفق الصور ثم احفظ.":"Add name, pick the pin on the map, attach photos, then save.",14,Color.DKGRAY,Typeface.NORMAL));
         nameEt=et(ar?"مثال: البيت / العمل":"Example: Home / Work"); add(page,label(ar?"اسم البطاقة":"Card title")); add(page,nameEt);
-        add(page,label(ar?"حدد الموقع من الخريطة":"Pick location on map"));
-        add(page,tv(ar?"حرّك الخريطة حتى تكون الدبوسة على باب البيت. لا تحتاج نسخ/لصق.":"Move the map until the pin is on your door. No copy/paste needed.",14,Color.DKGRAY,Typeface.NORMAL));
-        addInlineMapPicker(page);
-        coordTxt=tv(ar?"الموقع المختار: حرّك الخريطة لتحديد المكان":"Selected location: move the map to set the place",14,Color.DKGRAY,Typeface.BOLD); add(page,coordTxt);
+        add(page,label(ar?"الموقع":"Location"));
+        Button locBtn=btn(ar?"افتح الخريطة / حدد موقعي":"Find my location / Pick on map",green); locBtn.setOnClickListener(v->openLocationPickerDialog()); add(page,locBtn);
+        coordTxt=tv(ar?"لم يتم اختيار الموقع بعد":"No location picked yet",14,Color.DKGRAY,Typeface.BOLD); add(page,coordTxt);
         doorEt=et(ar?"مثال: فيلا 12، الدور الثاني":"Example: Villa 12, second floor"); add(page,label(ar?"تفاصيل الباب / البيت":"Door / home details")); add(page,doorEt);
         add(page,label(ar?"الصور":"Photos"));
         add(page,tv(ar?"اضغط الزر الأخضر لاختيار صور الباب/البيت من المعرض.":"Tap the green button to choose door/home photos from Gallery.",14,Color.DKGRAY,Typeface.NORMAL));
@@ -106,38 +105,61 @@ public class MainActivity extends Activity {
         try{
             LocationManager lm=(LocationManager)getSystemService(LOCATION_SERVICE); Location best=null;
             for(String p:lm.getProviders(true)){ Location l=lm.getLastKnownLocation(p); if(l!=null && (best==null || l.getAccuracy()<best.getAccuracy())) best=l; }
-            if(best!=null){ setSelectedLocation(best.getLatitude(),best.getLongitude(),"GPS current location"); toast(ar?"تم أخذ موقعك الحالي":"Current GPS location saved"); }
-            else { toast(ar?"لم أجد GPS. افتح Google Maps أو شغل الموقع":"No GPS yet. Enable location or open Google Maps"); startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)); }
+            if(best!=null){
+                if(gpsForPicker){ pickerLat=best.getLatitude(); pickerLng=best.getLongitude(); gpsForPicker=false; if(pickerCoordTxt!=null) pickerCoordTxt.setText("✅ "+pickerLat+", "+pickerLng); if(pickerWeb!=null) pickerWeb.evaluateJavascript("window.centerOn("+pickerLat+","+pickerLng+")",null); toast(ar?"تم تحديد موقعك الحالي":"Current location found"); }
+                else { setSelectedLocation(best.getLatitude(),best.getLongitude(),"GPS current location"); toast(ar?"تم أخذ موقعك الحالي":"Current GPS location saved"); }
+            }
+            else { gpsForPicker=false; toast(ar?"لم أجد GPS. شغل الموقع وحاول مرة أخرى":"No GPS yet. Enable location and try again"); startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)); }
         }catch(Exception e){ toast(ar?"تعذر أخذ GPS":"Could not get GPS"); }
     }
     public void onRequestPermissionsResult(int r,String[] p,int[] g){ super.onRequestPermissionsResult(r,p,g); if(r==REQ_LOC && g.length>0 && g[0]==PackageManager.PERMISSION_GRANTED) useCurrentGps(); }
 
 
     @SuppressLint({"SetJavaScriptEnabled","AddJavascriptInterface"})
-    void addInlineMapPicker(ViewGroup parent){
+    void openLocationPickerDialog(){
+        Dialog d=new Dialog(this);
+        LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(14),dp(14),dp(14),dp(14)); box.setBackgroundColor(bg);
+        add(box,tv(ar?"حدد موقع البيت":"Pick home location",22,teal,Typeface.BOLD));
+        add(box,tv(ar?"اضغط موقعي الحالي أو حرّك الخريطة، ثم اضغط حفظ الموقع.":"Tap Current location or move the map, then tap Save location.",14,Color.DKGRAY,Typeface.NORMAL));
+        Button gps=btn(ar?"موقعي الحالي":"Use my current location",teal); gps.setOnClickListener(v->useCurrentGpsInPicker()); add(box,gps);
+        pickerLat=selLat; pickerLng=selLng;
+        addDialogMapPicker(box);
+        pickerCoordTxt=tv("✅ "+pickerLat+", "+pickerLng,14,Color.DKGRAY,Typeface.BOLD); add(box,pickerCoordTxt);
+        Button save=btn(ar?"حفظ الموقع والرجوع":"Save location and go back",green); save.setOnClickListener(v->{ setSelectedLocation(pickerLat,pickerLng,"Map pin location"); d.dismiss(); }); add(box,save);
+        Button cancel=btn(ar?"إلغاء":"Cancel",Color.GRAY); cancel.setOnClickListener(v->d.dismiss()); add(box,cancel);
+        d.setContentView(box);
+        Window w=d.getWindow();
+        d.setOnShowListener(x->{ Window win=d.getWindow(); if(win!=null) win.setLayout(WindowManager.LayoutParams.MATCH_PARENT,WindowManager.LayoutParams.MATCH_PARENT); });
+        d.show();
+    }
+
+    @SuppressLint({"SetJavaScriptEnabled","AddJavascriptInterface"})
+    void addDialogMapPicker(ViewGroup parent){
         FrameLayout frame=new FrameLayout(this);
         frame.setBackground(round(Color.WHITE,dp(18),Color.rgb(220,226,223)));
-        WebView web=new WebView(this);
-        web.getSettings().setJavaScriptEnabled(true);
-        web.getSettings().setDomStorageEnabled(true);
-        web.getSettings().setUserAgentString("ShareMySpot/1.0 Android map picker contact: app-user");
-        web.setOnTouchListener((v,e)->{ v.getParent().requestDisallowInterceptTouchEvent(true); return false; });
-        final double startLat=selLat, startLng=selLng;
-        class Bridge { @JavascriptInterface public void setLocation(String lat,String lng){ try{ double la=Double.parseDouble(lat), ln=Double.parseDouble(lng); runOnUiThread(()->{ selLat=la; selLng=ln; selAddress="Map pin location"; if(coordTxt!=null) coordTxt.setText("✅ "+selLat+", "+selLng); }); }catch(Exception e){} } }
-        web.addJavascriptInterface(new Bridge(),"Android");
+        pickerWeb=new WebView(this);
+        pickerWeb.getSettings().setJavaScriptEnabled(true);
+        pickerWeb.getSettings().setDomStorageEnabled(true);
+        pickerWeb.getSettings().setUserAgentString("ShareMySpot/1.0 Android map picker contact: app-user");
+        pickerWeb.setOnTouchListener((v,e)->{ v.getParent().requestDisallowInterceptTouchEvent(true); return false; });
+        final double startLat=pickerLat, startLng=pickerLng;
+        class Bridge { @JavascriptInterface public void setLocation(String lat,String lng){ try{ double la=Double.parseDouble(lat), ln=Double.parseDouble(lng); runOnUiThread(()->{ pickerLat=la; pickerLng=ln; if(pickerCoordTxt!=null) pickerCoordTxt.setText("✅ "+pickerLat+", "+pickerLng); }); }catch(Exception e){} } }
+        pickerWeb.addJavascriptInterface(new Bridge(),"Android");
         String html=""+
         "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>"+
         "<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'>"+
         "<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>"+
         "<style>html,body,#map{height:100%;margin:0;background:#eef}.pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);font-size:46px;z-index:999;pointer-events:none;text-shadow:0 2px 4px white}.hint{position:absolute;left:10px;right:10px;top:10px;z-index:999;background:white;border-radius:14px;padding:8px;text-align:center;font:bold 14px sans-serif;box-shadow:0 2px 8px #777}</style>"+
         "</head><body><div id='map'></div><div class='hint'>"+(ar?"حرّك الخريطة وضع الدبوس على البيت":"Move map and place pin on home")+"</div><div class='pin'>📍</div>"+
-        "<script>var map=L.map('map',{zoomControl:true}).setView(["+startLat+","+startLng+"],17);L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',{maxZoom:20,attribution:'© OpenStreetMap © CARTO'}).addTo(map);function send(){var c=map.getCenter();Android.setLocation(String(c.lat),String(c.lng));}map.on('moveend',send);setTimeout(send,500);</script>"+
+        "<script>var map=L.map('map',{zoomControl:true}).setView(["+startLat+","+startLng+"],17);L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',{maxZoom:20,attribution:'© OpenStreetMap © CARTO'}).addTo(map);function send(){var c=map.getCenter();Android.setLocation(String(c.lat),String(c.lng));}window.centerOn=function(a,b){map.setView([a,b],18);send();};map.on('moveend',send);setTimeout(send,500);</script>"+
         "</body></html>";
-        web.loadDataWithBaseURL("https://openstreetmap.org/",html,"text/html","UTF-8",null);
-        frame.addView(web,new FrameLayout.LayoutParams(-1,-1));
-        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(380)); lp.setMargins(0,dp(6),0,dp(8));
+        pickerWeb.loadDataWithBaseURL("https://openstreetmap.org/",html,"text/html","UTF-8",null);
+        frame.addView(pickerWeb,new FrameLayout.LayoutParams(-1,-1));
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,0,1); lp.setMargins(0,dp(8),0,dp(8));
         parent.addView(frame,lp);
     }
+
+    void useCurrentGpsInPicker(){ gpsForPicker=true; useCurrentGps(); }
 
     void openSelectedMap(){ String q=searchEt==null?"":searchEt.getText().toString().trim(); if(q.length()>0 && !applyCoordsFromText(q)) openMapSearch(q); else openMap(selLat,selLng,"ShareMySpot"); }
     void openMapSearch(String q){ try{ startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("geo:0,0?q="+Uri.encode(q))).setPackage("com.google.android.apps.maps")); }catch(Exception e){ startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://www.google.com/maps/search/?api=1&query="+Uri.encode(q)))); } }
