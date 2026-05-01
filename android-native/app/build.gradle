@@ -7,8 +7,8 @@ android {
         applicationId 'com.sharemyspot'
         minSdk 23
         targetSdk 35
-        versionCode 3
-        versionName '1.2-map-photo-fix'
+        versionCode 4
+        versionName '1.3-free-map-picker'
     }
 }
 

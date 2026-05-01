@@ -15,6 +15,8 @@ import android.text.*;
 import android.view.*;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
+import android.webkit.*;
+import android.annotation.SuppressLint;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
@@ -61,6 +63,7 @@ public class MainActivity extends Activity {
         searchEt=et(ar?"الصق رابط Google Maps أو اكتب العنوان":"Paste Google Maps link or type address"); add(page,label(ar?"موقع Google Map":"Google Map location")); add(page,searchEt);
         Button search=btn(ar?"بحث / قراءة رابط الخريطة":"Find / read map link",teal); search.setOnClickListener(v->findLocation()); add(page,search);
         Button gps=btn(ar?"استخدم موقعي الحالي GPS":"Use my current GPS location",green); gps.setOnClickListener(v->useCurrentGps()); add(page,gps);
+        Button freeMap=btn(ar?"اختيار من خريطة مجانية":"Pick from free map",green); freeMap.setOnClickListener(v->openFreeMapPicker()); add(page,freeMap);
         Button maps=btn(ar?"افتح في Google Maps للتأكد":"Open in Google Maps to check",teal); maps.setOnClickListener(v->openSelectedMap()); add(page,maps);
         coordTxt=tv(ar?"الموقع الحالي: الرياض - اضغط GPS أو الصق رابط الخريطة":"Current: Riyadh - tap GPS or paste map link",14,Color.DKGRAY,Typeface.BOLD); add(page,coordTxt);
         doorEt=et(ar?"مثال: فيلا 12، الدور الثاني":"Example: Villa 12, second floor"); add(page,label(ar?"تفاصيل الباب / البيت":"Door / home details")); add(page,doorEt);
@@ -84,8 +87,8 @@ public class MainActivity extends Activity {
         Button mapBtn=btn(ar?"افتح الموقع في Google Maps":"Open location in Google Maps",teal); mapBtn.setOnClickListener(v->openMap(c.lat,c.lng,c.name)); add(box,mapBtn);
         LinearLayout imgs=new LinearLayout(this); imgs.setOrientation(LinearLayout.HORIZONTAL); box.addView(imgs,new LinearLayout.LayoutParams(-1,dp(120)));
         for(String p:c.photos){ ImageView iv=new ImageView(this); iv.setScaleType(ImageView.ScaleType.CENTER_CROP); iv.setImageURI(Uri.parse(p)); LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1); lp.setMargins(dp(4),dp(8),dp(4),dp(8)); imgs.addView(iv,lp); }
-        EditText phone=et(ar?"رقم واتساب للسائق بدون حفظ":"Driver WhatsApp number (unsaved)"); phone.setInputType(android.text.InputType.TYPE_CLASS_PHONE); add(box,phone);
-        Button open=btn(ar?"فتح واتساب وإرسال البطاقة":"Open WhatsApp with card",green); open.setOnClickListener(v->shareToNumber(c,phone.getText().toString())); add(box,open);
+        EditText phone=et(ar?"رقم واتساب لأي شخص بدون حفظ":"WhatsApp number - any person (unsaved)"); phone.setInputType(android.text.InputType.TYPE_CLASS_PHONE); add(box,phone);
+        Button open=btn(ar?"إرسال البطاقة عبر واتساب":"Send card on WhatsApp",green); open.setOnClickListener(v->shareToNumber(c,phone.getText().toString())); add(box,open);
         Button del=btn(ar?"حذف البطاقة":"Delete card",Color.rgb(190,40,40)); del.setOnClickListener(v->{cards.remove(c); persist(); render();}); add(box,del);
     }
 
@@ -110,6 +113,30 @@ public class MainActivity extends Activity {
         }catch(Exception e){ toast(ar?"تعذر أخذ GPS":"Could not get GPS"); }
     }
     public void onRequestPermissionsResult(int r,String[] p,int[] g){ super.onRequestPermissionsResult(r,p,g); if(r==REQ_LOC && g.length>0 && g[0]==PackageManager.PERMISSION_GRANTED) useCurrentGps(); }
+
+    @SuppressLint({"SetJavaScriptEnabled","AddJavascriptInterface"})
+    void openFreeMapPicker(){
+        final Dialog d=new Dialog(this);
+        LinearLayout wrap=new LinearLayout(this); wrap.setOrientation(LinearLayout.VERTICAL); wrap.setPadding(dp(8),dp(8),dp(8),dp(8));
+        TextView help=tv(ar?"خريطة مجانية: حرّك الخريطة ثم اضغط حفظ هذا الموقع":"Free map: move the map, then tap Save this location",15,teal,Typeface.BOLD); add(wrap,help);
+        WebView web=new WebView(this); web.getSettings().setJavaScriptEnabled(true); web.getSettings().setDomStorageEnabled(true);
+        final double startLat=selLat, startLng=selLng;
+        class Bridge { @JavascriptInterface public void setLocation(String lat,String lng){ try{ double la=Double.parseDouble(lat), ln=Double.parseDouble(lng); runOnUiThread(()->{ setSelectedLocation(la,ln,"Free map selected location"); d.dismiss(); toast(ar?"تم حفظ الموقع من الخريطة":"Location saved from map"); }); }catch(Exception e){} } }
+        web.addJavascriptInterface(new Bridge(),"Android");
+        String html=""+
+        "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>"+
+        "<link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'>"+
+        "<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>"+
+        "<style>html,body,#map{height:100%;margin:0}.pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);font-size:42px;z-index:999}.bar{position:absolute;left:10px;right:10px;bottom:12px;z-index:999;background:white;border-radius:14px;padding:10px;box-shadow:0 2px 10px #777;font-family:sans-serif}button{width:100%;font-size:18px;font-weight:bold;color:white;background:#25D366;border:0;border-radius:12px;padding:14px}</style>"+
+        "</head><body><div id='map'></div><div class='pin'>📍</div><div class='bar'><button onclick='save()'>"+(ar?"حفظ هذا الموقع":"Save this location")+"</button></div>"+
+        "<script>var map=L.map('map').setView(["+startLat+","+startLng+"],17);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);function save(){var c=map.getCenter();Android.setLocation(String(c.lat),String(c.lng));}</script>"+
+        "</body></html>";
+        web.loadDataWithBaseURL("https://openstreetmap.org/",html,"text/html","UTF-8",null);
+        wrap.addView(web,new LinearLayout.LayoutParams(-1,0,1));
+        Button close=btn(ar?"إغلاق":"Close",Color.rgb(120,120,120)); close.setOnClickListener(v->d.dismiss()); add(wrap,close);
+        d.setContentView(wrap); Window w=d.getWindow(); d.show(); Window win=d.getWindow(); if(win!=null) win.setLayout(-1,-1);
+    }
+
     void openSelectedMap(){ String q=searchEt==null?"":searchEt.getText().toString().trim(); if(q.length()>0 && !applyCoordsFromText(q)) openMapSearch(q); else openMap(selLat,selLng,"ShareMySpot"); }
     void openMapSearch(String q){ try{ startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("geo:0,0?q="+Uri.encode(q))).setPackage("com.google.android.apps.maps")); }catch(Exception e){ startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://www.google.com/maps/search/?api=1&query="+Uri.encode(q)))); } }
     void openMap(double lat,double lng,String label){ Uri u=Uri.parse("geo:"+lat+","+lng+"?q="+lat+","+lng+"("+Uri.encode(label)+")"); try{ startActivity(new Intent(Intent.ACTION_VIEW,u).setPackage("com.google.android.apps.maps")); }catch(Exception e){ startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://maps.google.com/?q="+lat+","+lng))); } }
@@ -123,7 +150,7 @@ public class MainActivity extends Activity {
     String message(Card c){ return (ar?"مرحباً 👋":"Hello 👋")+"\n\n🏠 "+c.name+"\n📍 https://maps.google.com/?q="+c.lat+","+c.lng+(c.door.length()>0?"\n🚪 "+c.door:""); }
 
     void shareToNumber(Card c,String phoneRaw){
-        String phone=normPhone(phoneRaw); if(phone.length()<8){toast(ar?"أدخل رقم صحيح":"Enter valid number"); return;}
+        String phone=normPhone(phoneRaw); if(phone.length()<8){toast(ar?"أدخل رقم واتساب صحيح":"Enter any valid WhatsApp number"); return;}
         try{
             Uri cardImg=makeCardImage(c);
             Intent intent=new Intent(Intent.ACTION_SEND);
