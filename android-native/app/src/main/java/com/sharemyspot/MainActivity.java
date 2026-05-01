@@ -120,6 +120,7 @@ public class MainActivity extends Activity {
         WebView web=new WebView(this);
         web.getSettings().setJavaScriptEnabled(true);
         web.getSettings().setDomStorageEnabled(true);
+        web.getSettings().setUserAgentString("ShareMySpot/1.0 Android map picker contact: app-user");
         web.setOnTouchListener((v,e)->{ v.getParent().requestDisallowInterceptTouchEvent(true); return false; });
         final double startLat=selLat, startLng=selLng;
         class Bridge { @JavascriptInterface public void setLocation(String lat,String lng){ try{ double la=Double.parseDouble(lat), ln=Double.parseDouble(lng); runOnUiThread(()->{ selLat=la; selLng=ln; selAddress="Map pin location"; if(coordTxt!=null) coordTxt.setText("✅ "+selLat+", "+selLng); }); }catch(Exception e){} } }
@@ -130,7 +131,7 @@ public class MainActivity extends Activity {
         "<script src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'></script>"+
         "<style>html,body,#map{height:100%;margin:0;background:#eef}.pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);font-size:46px;z-index:999;pointer-events:none;text-shadow:0 2px 4px white}.hint{position:absolute;left:10px;right:10px;top:10px;z-index:999;background:white;border-radius:14px;padding:8px;text-align:center;font:bold 14px sans-serif;box-shadow:0 2px 8px #777}</style>"+
         "</head><body><div id='map'></div><div class='hint'>"+(ar?"حرّك الخريطة وضع الدبوس على البيت":"Move map and place pin on home")+"</div><div class='pin'>📍</div>"+
-        "<script>var map=L.map('map',{zoomControl:true}).setView(["+startLat+","+startLng+"],17);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);function send(){var c=map.getCenter();Android.setLocation(String(c.lat),String(c.lng));}map.on('moveend',send);setTimeout(send,500);</script>"+
+        "<script>var map=L.map('map',{zoomControl:true}).setView(["+startLat+","+startLng+"],17);L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',{maxZoom:20,attribution:'© OpenStreetMap © CARTO'}).addTo(map);function send(){var c=map.getCenter();Android.setLocation(String(c.lat),String(c.lng));}map.on('moveend',send);setTimeout(send,500);</script>"+
         "</body></html>";
         web.loadDataWithBaseURL("https://openstreetmap.org/",html,"text/html","UTF-8",null);
         frame.addView(web,new FrameLayout.LayoutParams(-1,-1));
