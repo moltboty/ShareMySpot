@@ -50,9 +50,20 @@ public class MainActivity extends Activity {
     TextView hero(String title,String sub){ TextView v=tv(title+"\n"+sub,25,nearBlack,Typeface.BOLD); v.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); v.setPadding(dp(18),dp(22),dp(18),dp(22)); v.setBackground(round(Color.WHITE,dp(24),Color.WHITE)); elevate(v,2); return v; }
     LinearLayout panel(){ LinearLayout x=new LinearLayout(this); x.setOrientation(LinearLayout.VERTICAL); x.setPadding(dp(18),dp(18),dp(18),dp(18)); x.setBackground(round(Color.WHITE,dp(24),Color.WHITE)); elevate(x,2); touchScale(x); return x; }
     void addPanel(ViewGroup p, View v){ LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2); lp.setMargins(0,0,0,dp(18)); p.addView(v,lp); }
+    Drawable quietGridBackground(){
+        int cell=dp(20);
+        Bitmap tile=Bitmap.createBitmap(cell,cell,Bitmap.Config.ARGB_8888);
+        Canvas c=new Canvas(tile);
+        Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setStyle(Paint.Style.FILL); p.setColor(bg); c.drawRect(0,0,cell,cell,p);
+        p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(Math.max(1,dp(1))); p.setColor(Color.argb(14,0,0,0));
+        c.drawLine(0,0,cell,0,p); c.drawLine(0,0,0,cell,p);
+        BitmapDrawable d=new BitmapDrawable(getResources(),tile); d.setTileModeX(Shader.TileMode.REPEAT); d.setTileModeY(Shader.TileMode.REPEAT);
+        return d;
+    }
 
     void render(){
-        root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(bg); setContentView(root);
+        root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackground(quietGridBackground()); setContentView(root);
         LinearLayout header=new LinearLayout(this); header.setPadding(dp(20),dp(20),dp(20),dp(10)); header.setGravity(Gravity.CENTER_VERTICAL); header.setOrientation(LinearLayout.HORIZONTAL);
         TextView title=tv(ar?"شارك موقعي":"ShareMySpot",27,nearBlack,Typeface.BOLD); header.addView(title,new LinearLayout.LayoutParams(0,-2,1));
         Button lang=softBtn(ar?"EN":"عر",Color.WHITE,nearBlack); lang.setOnClickListener(v->{ar=!ar; render();}); header.addView(lang,new LinearLayout.LayoutParams(dp(72),dp(48)));
