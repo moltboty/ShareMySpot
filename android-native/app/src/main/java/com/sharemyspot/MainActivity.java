@@ -28,14 +28,14 @@ import java.util.*;
 
 public class MainActivity extends Activity {
     int green = Color.rgb(94,197,186), teal = Color.rgb(44,62,69), bg = Color.rgb(248,250,249);
-    int mint = Color.rgb(126,209,198), mintDeep = Color.rgb(75,181,169), mutedBlue = Color.rgb(93,123,214), nearBlack = Color.rgb(38,48,54), softText = Color.rgb(108,119,125), cardBg = Color.WHITE, inputBg = Color.rgb(244,248,247), line = Color.rgb(232,238,236), softRed = Color.rgb(204,91,91);
-    LinearLayout root, tabBar, page; boolean ar=false; int activeTab=0; ArrayList<Card> cards=new ArrayList<>();
+    int mint = Color.rgb(126,209,198), mintDeep = Color.rgb(75,181,169), mutedBlue = Color.rgb(93,123,214), nearBlack = Color.rgb(38,48,54), softText = Color.rgb(108,119,125), cardBg = Color.WHITE, inputBg = Color.rgb(244,248,247), line = Color.rgb(232,238,236), mintSoft = Color.rgb(235,248,246), softRed = Color.rgb(204,91,91);
+    LinearLayout root, tabBar, page; boolean ar=false, dark=false; int activeTab=0; ArrayList<Card> cards=new ArrayList<>();
     EditText nameEt, searchEt, doorEt, phoneEt; TextView coordTxt, pickerCoordTxt; LinearLayout photoRow; ArrayList<Uri> tempPhotos=new ArrayList<>(); double selLat=24.7136, selLng=46.6753, pickerLat=24.7136, pickerLng=46.6753; String selAddress="Riyadh"; WebView pickerWeb; boolean gpsForPicker=false;
     static final int PICK=77, REQ_LOC=88;
 
     static class Card { String id,name,door,address; double lat,lng; ArrayList<String> photos=new ArrayList<>(); }
 
-    public void onCreate(Bundle b){ super.onCreate(b); load(); render(); }
+    public void onCreate(Bundle b){ super.onCreate(b); dark=getPreferences(0).getBoolean("dark",false); load(); render(); }
 
     TextView tv(String s,int sp,int color,int style){ TextView v=new TextView(this); v.setText(s); v.setTextSize(sp); v.setTextColor(color); v.setTypeface(Typeface.create("sans-serif",style)); v.setIncludeFontPadding(true); v.setLineSpacing(dp(2),1.08f); v.setPadding(dp(2),dp(3),dp(2),dp(3)); return v; }
     EditText et(String hint){ EditText e=new EditText(this); e.setHint(hint); e.setHintTextColor(Color.rgb(158,166,170)); e.setTextColor(nearBlack); e.setTextSize(17); e.setTypeface(Typeface.create("sans-serif",Typeface.NORMAL)); e.setSingleLine(false); e.setBackground(round(inputBg, dp(18), inputBg)); e.setPadding(dp(18),dp(13),dp(18),dp(13)); e.setMinHeight(dp(62)); return e; }
@@ -47,28 +47,35 @@ public class MainActivity extends Activity {
     void add(ViewGroup p, View v){ LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2); lp.setMargins(0,0,0,dp(12)); p.addView(v,lp); }
     void elevate(View v,int e){ if(Build.VERSION.SDK_INT>=21){ v.setElevation(dp(e)); v.setTranslationZ(dp(1)); } }
     void touchScale(View v){ v.setOnTouchListener((x,e)->{ if(e.getAction()==android.view.MotionEvent.ACTION_DOWN) x.animate().scaleX(.98f).scaleY(.98f).setDuration(90).start(); if(e.getAction()==android.view.MotionEvent.ACTION_UP||e.getAction()==android.view.MotionEvent.ACTION_CANCEL) x.animate().scaleX(1f).scaleY(1f).setDuration(120).start(); return false; }); }
-    TextView hero(String title,String sub){ TextView v=tv(title+"\n"+sub,25,nearBlack,Typeface.BOLD); v.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); v.setPadding(dp(18),dp(22),dp(18),dp(22)); v.setBackground(round(Color.WHITE,dp(24),Color.WHITE)); elevate(v,2); return v; }
-    LinearLayout panel(){ LinearLayout x=new LinearLayout(this); x.setOrientation(LinearLayout.VERTICAL); x.setPadding(dp(18),dp(18),dp(18),dp(18)); x.setBackground(round(Color.WHITE,dp(24),Color.WHITE)); elevate(x,2); touchScale(x); return x; }
+    TextView hero(String title,String sub){ TextView v=tv(title+"\n"+sub,25,nearBlack,Typeface.BOLD); v.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); v.setPadding(dp(18),dp(22),dp(18),dp(22)); v.setBackground(round(cardBg,dp(24),cardBg)); elevate(v,2); return v; }
+    LinearLayout panel(){ LinearLayout x=new LinearLayout(this); x.setOrientation(LinearLayout.VERTICAL); x.setPadding(dp(18),dp(18),dp(18),dp(18)); x.setBackground(round(cardBg,dp(24),cardBg)); elevate(x,2); touchScale(x); return x; }
     void addPanel(ViewGroup p, View v){ LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2); lp.setMargins(0,0,0,dp(18)); p.addView(v,lp); }
+    void applyTheme(){
+        if(dark){ bg=Color.rgb(15,20,22); cardBg=Color.rgb(24,32,36); inputBg=Color.rgb(31,42,47); nearBlack=Color.rgb(234,242,240); softText=Color.rgb(166,181,177); line=Color.rgb(43,56,61); mint=Color.rgb(126,209,198); mintDeep=Color.rgb(91,196,184); mintSoft=Color.rgb(31,54,52); softRed=Color.rgb(232,124,124); teal=nearBlack; }
+        else { bg=Color.rgb(248,250,249); cardBg=Color.WHITE; inputBg=Color.rgb(244,248,247); nearBlack=Color.rgb(38,48,54); softText=Color.rgb(108,119,125); line=Color.rgb(232,238,236); mint=Color.rgb(126,209,198); mintDeep=Color.rgb(75,181,169); mintSoft=Color.rgb(235,248,246); softRed=Color.rgb(204,91,91); teal=Color.rgb(44,62,69); }
+    }
+
     Drawable quietGridBackground(){
         int cell=dp(20);
         Bitmap tile=Bitmap.createBitmap(cell,cell,Bitmap.Config.ARGB_8888);
         Canvas c=new Canvas(tile);
         Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setStyle(Paint.Style.FILL); p.setColor(bg); c.drawRect(0,0,cell,cell,p);
-        p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(Math.max(1,dp(1))); p.setColor(Color.argb(14,0,0,0));
+        p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(Math.max(1,dp(1))); p.setColor(dark?Color.argb(18,255,255,255):Color.argb(14,0,0,0));
         c.drawLine(0,0,cell,0,p); c.drawLine(0,0,0,cell,p);
         BitmapDrawable d=new BitmapDrawable(getResources(),tile); d.setTileModeX(Shader.TileMode.REPEAT); d.setTileModeY(Shader.TileMode.REPEAT);
         return d;
     }
 
     void render(){
+        applyTheme();
         root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackground(quietGridBackground()); setContentView(root);
         LinearLayout header=new LinearLayout(this); header.setPadding(dp(20),dp(20),dp(20),dp(10)); header.setGravity(Gravity.CENTER_VERTICAL); header.setOrientation(LinearLayout.HORIZONTAL);
         TextView title=tv(ar?"شارك موقعي":"ShareMySpot",27,nearBlack,Typeface.BOLD); header.addView(title,new LinearLayout.LayoutParams(0,-2,1));
-        Button lang=softBtn(ar?"EN":"عر",Color.WHITE,nearBlack); lang.setOnClickListener(v->{ar=!ar; render();}); header.addView(lang,new LinearLayout.LayoutParams(dp(72),dp(48)));
+        Button lang=softBtn(ar?"E":"ع",cardBg,nearBlack); lang.setTextSize(18); lang.setOnClickListener(v->{ar=!ar; render();}); header.addView(lang,new LinearLayout.LayoutParams(dp(52),dp(44)));
+        Button theme=softBtn(dark?"☀":"☾",cardBg,nearBlack); theme.setTextSize(18); theme.setOnClickListener(v->{dark=!dark; getPreferences(0).edit().putBoolean("dark",dark).apply(); render();}); LinearLayout.LayoutParams thp=new LinearLayout.LayoutParams(dp(52),dp(44)); thp.setMargins(dp(8),0,0,0); header.addView(theme,thp);
         root.addView(header);
-        tabBar=new LinearLayout(this); tabBar.setPadding(dp(6),dp(6),dp(6),dp(6)); tabBar.setOrientation(LinearLayout.HORIZONTAL); tabBar.setBackground(round(Color.WHITE,dp(24),Color.WHITE)); LinearLayout.LayoutParams tbp=new LinearLayout.LayoutParams(-1,dp(64)); tbp.setMargins(dp(16),0,dp(16),dp(14)); root.addView(tabBar,tbp); elevate(tabBar,2);
+        tabBar=new LinearLayout(this); tabBar.setPadding(dp(6),dp(6),dp(6),dp(6)); tabBar.setOrientation(LinearLayout.HORIZONTAL); tabBar.setBackground(round(cardBg,dp(24),cardBg)); LinearLayout.LayoutParams tbp=new LinearLayout.LayoutParams(-1,dp(64)); tbp.setMargins(dp(16),0,dp(16),dp(14)); root.addView(tabBar,tbp); elevate(tabBar,2);
         Button t1=softBtn(ar?"إنشاء البطاقة":"Create/Edit", activeTab==0?mint:Color.TRANSPARENT, activeTab==0?Color.WHITE:softText); Button t2=softBtn(ar?"البطاقات":"Cards", activeTab==1?mint:Color.TRANSPARENT, activeTab==1?Color.WHITE:softText);
         t1.setOnClickListener(v->{activeTab=0; render();}); t2.setOnClickListener(v->{activeTab=1; render();}); tabBar.addView(t1,new LinearLayout.LayoutParams(0,dp(52),1)); tabBar.addView(t2,new LinearLayout.LayoutParams(0,dp(52),1));
         ScrollView sv=new ScrollView(this); page=new LinearLayout(this); page.setOrientation(LinearLayout.VERTICAL); page.setPadding(dp(18),dp(8),dp(18),dp(44)); sv.addView(page); root.addView(sv,new LinearLayout.LayoutParams(-1,0,1));
@@ -83,8 +90,8 @@ public class MainActivity extends Activity {
         coordTxt=tv(ar?"لم يتم اختيار الموقع بعد":"No location picked yet",14,softText,Typeface.NORMAL); add(page,coordTxt);
         doorEt=et(ar?"مثال: فيلا 12، الدور الثاني":"Example: Villa 12, second floor"); add(page,label(ar?"تفاصيل الباب / البيت":"Door / home details")); add(page,doorEt);
         add(page,label(ar?"الصور":"Photos"));
-        add(page,tv(ar?"اضغط الزر الأخضر لاختيار صور الباب/البيت من المعرض.":"Tap the green button to choose door/home photos from Gallery.",14,Color.DKGRAY,Typeface.NORMAL));
-        Button pick=softBtn(ar?"اختر الصور من المعرض":"Choose photos from Gallery",Color.rgb(235,248,246),mintDeep); pick.setOnClickListener(v->pickPhotos()); add(page,pick);
+        add(page,tv(ar?"اضغط الزر الأخضر لاختيار صور الباب/البيت من المعرض.":"Tap the green button to choose door/home photos from Gallery.",14,softText,Typeface.NORMAL));
+        Button pick=softBtn(ar?"اختر الصور من المعرض":"Choose photos from Gallery",mintSoft,mintDeep); pick.setOnClickListener(v->pickPhotos()); add(page,pick);
         photoRow=new LinearLayout(this); photoRow.setOrientation(LinearLayout.HORIZONTAL); photoRow.setPadding(0,dp(8),0,dp(8)); add(page,photoRow); refreshTempPhotos();
         Button save=btn(ar?"حفظ البطاقة":"Save card",mintDeep); save.setOnClickListener(v->saveCard()); add(page,save);
     }
@@ -102,20 +109,20 @@ public class MainActivity extends Activity {
 
         LinearLayout top=new LinearLayout(this); top.setOrientation(LinearLayout.HORIZONTAL); top.setGravity(Gravity.CENTER_VERTICAL);
         TextView name=tv("⌂  "+c.name,24,nearBlack,Typeface.BOLD); top.addView(name,new LinearLayout.LayoutParams(0,-2,1));
-        TextView badge=tv(ar?"بطاقة":"Card",12,mintDeep,Typeface.BOLD); badge.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); badge.setBackground(round(Color.rgb(235,248,246),dp(999),Color.rgb(235,248,246))); badge.setPadding(dp(12),dp(6),dp(12),dp(6)); top.addView(badge,new LinearLayout.LayoutParams(-2,-2));
+        TextView badge=tv(ar?"بطاقة":"Card",12,mintDeep,Typeface.BOLD); badge.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); badge.setBackground(round(mintSoft,dp(999),mintSoft)); badge.setPadding(dp(12),dp(6),dp(12),dp(6)); top.addView(badge,new LinearLayout.LayoutParams(-2,-2));
         add(box,top);
 
-        TextView loc=tv("📍  https://maps.google.com/?q="+c.lat+","+c.lng,14,softText,Typeface.NORMAL); loc.setBackground(round(Color.rgb(247,249,249),dp(18),Color.rgb(247,249,249))); loc.setPadding(dp(14),dp(12),dp(14),dp(12)); add(box,loc);
-        if(c.door.length()>0){ TextView door=tv("🚪  "+c.door,15,nearBlack,Typeface.NORMAL); door.setBackground(round(Color.rgb(247,249,249),dp(18),Color.rgb(247,249,249))); door.setPadding(dp(14),dp(10),dp(14),dp(10)); add(box,door); }
+        TextView loc=tv("📍  https://maps.google.com/?q="+c.lat+","+c.lng,14,softText,Typeface.NORMAL); loc.setBackground(round(inputBg,dp(18),inputBg)); loc.setPadding(dp(14),dp(12),dp(14),dp(12)); add(box,loc);
+        if(c.door.length()>0){ TextView door=tv("🚪  "+c.door,15,nearBlack,Typeface.NORMAL); door.setBackground(round(inputBg,dp(18),inputBg)); door.setPadding(dp(14),dp(10),dp(14),dp(10)); add(box,door); }
 
         LinearLayout imgs=new LinearLayout(this); imgs.setOrientation(LinearLayout.HORIZONTAL); imgs.setPadding(0,dp(2),0,dp(2)); box.addView(imgs,new LinearLayout.LayoutParams(-1,dp(c.photos.isEmpty()?1:128)));
-        for(String p:c.photos){ ImageView iv=new ImageView(this); iv.setScaleType(ImageView.ScaleType.CENTER_CROP); iv.setImageURI(Uri.parse(p)); if(Build.VERSION.SDK_INT>=21) iv.setClipToOutline(true); iv.setBackground(round(Color.rgb(240,244,243),dp(18),Color.rgb(240,244,243))); LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1); lp.setMargins(dp(4),dp(8),dp(4),dp(8)); imgs.addView(iv,lp); }
+        for(String p:c.photos){ ImageView iv=new ImageView(this); iv.setScaleType(ImageView.ScaleType.CENTER_CROP); iv.setImageURI(Uri.parse(p)); if(Build.VERSION.SDK_INT>=21) iv.setClipToOutline(true); iv.setBackground(round(inputBg,dp(18),inputBg)); LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1); lp.setMargins(dp(4),dp(8),dp(4),dp(8)); imgs.addView(iv,lp); }
 
         Button mapBtn=btn(ar?"افتح الموقع في الخرائط":"Open in Maps",mintDeep); mapBtn.setOnClickListener(v->openMap(c.lat,c.lng,c.name)); add(box,mapBtn);
 
         add(box,label(ar?"أدخل رقم واتساب":"Add any WhatsApp number"));
         EditText phone=et(ar?"مثال: 05xxxxxxxx أو +9665xxxxxxxx":"Example: 05xxxxxxxx or +9665xxxxxxxx"); phone.setInputType(android.text.InputType.TYPE_CLASS_PHONE); phone.setSingleLine(true); phone.setTextSize(19); phone.setMinHeight(dp(70)); phone.setPadding(dp(18),dp(14),dp(18),dp(14)); add(box,phone);
-        Button open=softBtn(ar?"إرسال عبر واتساب":"Send via WhatsApp",Color.rgb(235,248,246),mintDeep); open.setOnClickListener(v->shareToNumber(c,phone.getText().toString())); add(box,open);
+        Button open=softBtn(ar?"إرسال عبر واتساب":"Send via WhatsApp",mintSoft,mintDeep); open.setOnClickListener(v->shareToNumber(c,phone.getText().toString())); add(box,open);
         Button del=textBtn(ar?"حذف البطاقة":"Delete",softRed); del.setOnClickListener(v->{cards.remove(c); persist(); render();}); add(box,del);
     }
 
@@ -150,11 +157,11 @@ public class MainActivity extends Activity {
         Dialog d=new Dialog(this);
         LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(18),dp(18),dp(18),dp(18)); box.setBackgroundColor(bg);
         add(box,tv(ar?"حدد موقع البيت":"Pick home location",24,nearBlack,Typeface.BOLD));
-        add(box,tv(ar?"اضغط موقعي الحالي أو حرّك الخريطة، ثم اضغط حفظ الموقع.":"Tap Current location or move the map, then tap Save location.",14,Color.DKGRAY,Typeface.NORMAL));
-        Button gps=softBtn(ar?"موقعي الحالي":"Use my current location",Color.rgb(235,248,246),mintDeep); gps.setOnClickListener(v->useCurrentGpsInPicker()); add(box,gps);
+        add(box,tv(ar?"اضغط موقعي الحالي أو حرّك الخريطة، ثم اضغط حفظ الموقع.":"Tap Current location or move the map, then tap Save location.",14,softText,Typeface.NORMAL));
+        Button gps=softBtn(ar?"موقعي الحالي":"Use my current location",mintSoft,mintDeep); gps.setOnClickListener(v->useCurrentGpsInPicker()); add(box,gps);
         pickerLat=selLat; pickerLng=selLng;
         addDialogMapPicker(box);
-        pickerCoordTxt=tv("✅ "+pickerLat+", "+pickerLng,14,Color.DKGRAY,Typeface.BOLD); add(box,pickerCoordTxt);
+        pickerCoordTxt=tv("✅ "+pickerLat+", "+pickerLng,14,softText,Typeface.BOLD); add(box,pickerCoordTxt);
         Button save=btn(ar?"حفظ الموقع والرجوع":"Save location and go back",mintDeep); save.setOnClickListener(v->{ setSelectedLocation(pickerLat,pickerLng,"Map pin location"); d.dismiss(); }); add(box,save);
         Button cancel=textBtn(ar?"إلغاء":"Cancel",softText); cancel.setOnClickListener(v->d.dismiss()); add(box,cancel);
         d.setContentView(box);
@@ -166,7 +173,7 @@ public class MainActivity extends Activity {
     @SuppressLint({"SetJavaScriptEnabled","AddJavascriptInterface"})
     void addDialogMapPicker(ViewGroup parent){
         FrameLayout frame=new FrameLayout(this);
-        frame.setBackground(round(Color.WHITE,dp(24),Color.WHITE)); elevate(frame,2);
+        frame.setBackground(round(cardBg,dp(24),cardBg)); elevate(frame,2);
         pickerWeb=new WebView(this);
         pickerWeb.getSettings().setJavaScriptEnabled(true);
         pickerWeb.getSettings().setDomStorageEnabled(true);
