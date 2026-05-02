@@ -27,7 +27,8 @@ import java.io.*;
 import java.util.*;
 
 public class MainActivity extends Activity {
-    int green = Color.rgb(37,211,102), teal = Color.rgb(7,94,84), bg = Color.rgb(246,248,247);
+    int green = Color.rgb(0,113,227), teal = Color.rgb(29,29,31), bg = Color.rgb(245,245,247);
+    int appleBlue = Color.rgb(0,113,227), nearBlack = Color.rgb(29,29,31), softText = Color.rgb(82,82,87), cardBg = Color.WHITE, line = Color.rgb(220,220,225);
     LinearLayout root, tabBar, page; boolean ar=false; int activeTab=0; ArrayList<Card> cards=new ArrayList<>();
     EditText nameEt, searchEt, doorEt, phoneEt; TextView coordTxt, pickerCoordTxt; LinearLayout photoRow; ArrayList<Uri> tempPhotos=new ArrayList<>(); double selLat=24.7136, selLng=46.6753, pickerLat=24.7136, pickerLng=46.6753; String selAddress="Riyadh"; WebView pickerWeb; boolean gpsForPicker=false;
     static final int PICK=77, REQ_LOC=88;
@@ -36,56 +37,59 @@ public class MainActivity extends Activity {
 
     public void onCreate(Bundle b){ super.onCreate(b); load(); render(); }
 
-    TextView tv(String s,int sp,int color,int style){ TextView v=new TextView(this); v.setText(s); v.setTextSize(sp); v.setTextColor(color); v.setTypeface(Typeface.DEFAULT,style); v.setPadding(dp(4),dp(4),dp(4),dp(4)); return v; }
-    EditText et(String hint){ EditText e=new EditText(this); e.setHint(hint); e.setTextSize(16); e.setSingleLine(false); e.setBackground(round(Color.WHITE, dp(14), Color.rgb(220,226,223))); e.setPadding(dp(14),0,dp(14),0); e.setMinHeight(dp(52)); return e; }
-    Button btn(String s,int color){ Button b=new Button(this); b.setText(s); b.setTextColor(Color.WHITE); b.setTextSize(15); b.setTypeface(Typeface.DEFAULT,Typeface.BOLD); b.setAllCaps(false); b.setBackground(round(color, dp(14), color)); b.setMinHeight(dp(52)); return b; }
+    TextView tv(String s,int sp,int color,int style){ TextView v=new TextView(this); v.setText(s); v.setTextSize(sp); v.setTextColor(color); v.setTypeface(Typeface.create("sans-serif",style)); v.setIncludeFontPadding(true); v.setLineSpacing(dp(1),1.04f); v.setPadding(dp(2),dp(3),dp(2),dp(3)); return v; }
+    EditText et(String hint){ EditText e=new EditText(this); e.setHint(hint); e.setHintTextColor(Color.rgb(135,135,140)); e.setTextColor(nearBlack); e.setTextSize(17); e.setTypeface(Typeface.create("sans-serif",Typeface.NORMAL)); e.setSingleLine(false); e.setBackground(round(cardBg, dp(16), line)); e.setPadding(dp(16),dp(12),dp(16),dp(12)); e.setMinHeight(dp(58)); return e; }
+    Button btn(String s,int color){ Button b=new Button(this); b.setText(s); b.setTextColor(Color.WHITE); b.setTextSize(16); b.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL)); b.setAllCaps(false); b.setBackground(round(color, dp(18), color)); b.setMinHeight(dp(56)); b.setPadding(dp(14),dp(8),dp(14),dp(8)); return b; }
     GradientDrawable round(int color,int r,int stroke){ GradientDrawable g=new GradientDrawable(); g.setColor(color); g.setCornerRadius(r); g.setStroke(dp(1), stroke); return g; }
     int dp(int v){ return (int)(v*getResources().getDisplayMetrics().density+.5f); }
-    void add(ViewGroup p, View v){ p.addView(v,new LinearLayout.LayoutParams(-1,-2)); }
+    void add(ViewGroup p, View v){ LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2); lp.setMargins(0,0,0,dp(10)); p.addView(v,lp); }
+    TextView hero(String title,String sub){ TextView v=tv(title+"\n"+sub,26,nearBlack,Typeface.BOLD); v.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); v.setPadding(dp(10),dp(18),dp(10),dp(18)); v.setBackground(round(Color.WHITE,dp(24),Color.WHITE)); return v; }
+    LinearLayout panel(){ LinearLayout x=new LinearLayout(this); x.setOrientation(LinearLayout.VERTICAL); x.setPadding(dp(16),dp(16),dp(16),dp(16)); x.setBackground(round(Color.WHITE,dp(24),Color.WHITE)); return x; }
+    void addPanel(ViewGroup p, View v){ LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2); lp.setMargins(0,0,0,dp(16)); p.addView(v,lp); }
 
     void render(){
         root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(bg); setContentView(root);
         LinearLayout header=new LinearLayout(this); header.setPadding(dp(16),dp(18),dp(16),dp(8)); header.setGravity(Gravity.CENTER_VERTICAL); header.setOrientation(LinearLayout.HORIZONTAL);
-        TextView title=tv(ar?"شارك موقعي":"ShareMySpot",24,teal,Typeface.BOLD); header.addView(title,new LinearLayout.LayoutParams(0,-2,1));
-        Button lang=btn(ar?"EN":"عر",teal); lang.setOnClickListener(v->{ar=!ar; render();}); header.addView(lang,new LinearLayout.LayoutParams(dp(72),dp(48)));
+        TextView title=tv(ar?"شارك موقعي":"ShareMySpot",28,nearBlack,Typeface.BOLD); header.addView(title,new LinearLayout.LayoutParams(0,-2,1));
+        Button lang=btn(ar?"EN":"عر",nearBlack); lang.setOnClickListener(v->{ar=!ar; render();}); header.addView(lang,new LinearLayout.LayoutParams(dp(72),dp(48)));
         root.addView(header);
         tabBar=new LinearLayout(this); tabBar.setPadding(dp(12),0,dp(12),dp(8)); tabBar.setOrientation(LinearLayout.HORIZONTAL); root.addView(tabBar);
-        Button t1=btn(ar?"إنشاء البطاقة":"Create/Edit", activeTab==0?green:teal); Button t2=btn(ar?"البطاقات":"Cards", activeTab==1?green:teal);
+        Button t1=btn(ar?"إنشاء البطاقة":"Create/Edit", activeTab==0?appleBlue:nearBlack); Button t2=btn(ar?"البطاقات":"Cards", activeTab==1?appleBlue:nearBlack);
         t1.setOnClickListener(v->{activeTab=0; render();}); t2.setOnClickListener(v->{activeTab=1; render();}); tabBar.addView(t1,new LinearLayout.LayoutParams(0,dp(50),1)); tabBar.addView(t2,new LinearLayout.LayoutParams(0,dp(50),1));
         ScrollView sv=new ScrollView(this); page=new LinearLayout(this); page.setOrientation(LinearLayout.VERTICAL); page.setPadding(dp(16),dp(8),dp(16),dp(40)); sv.addView(page); root.addView(sv,new LinearLayout.LayoutParams(-1,0,1));
         if(activeTab==0) renderCreate(); else renderCards();
     }
 
     void renderCreate(){
-        add(page,tv(ar?"أنشئ بطاقة موقعك":"Create your location card",22,Color.rgb(20,30,30),Typeface.BOLD));
-        add(page,tv(ar?"أضف الاسم، حدد الموقع من الخريطة، أرفق الصور ثم احفظ.":"Add name, pick the pin on the map, attach photos, then save.",14,Color.DKGRAY,Typeface.NORMAL));
+        add(page,hero(ar?"أنشئ بطاقة موقعك":"Create your location card", ar?"بسيطة، واضحة، وجاهزة للواتساب":"Simple, premium, ready for WhatsApp"));
         nameEt=et(ar?"مثال: البيت / العمل":"Example: Home / Work"); add(page,label(ar?"اسم البطاقة":"Card title")); add(page,nameEt);
         add(page,label(ar?"الموقع":"Location"));
-        Button locBtn=btn(ar?"افتح الخريطة / حدد موقعي":"Find my location / Pick on map",green); locBtn.setOnClickListener(v->openLocationPickerDialog()); add(page,locBtn);
+        Button locBtn=btn(ar?"افتح الخريطة / حدد موقعي":"Find my location / Pick on map",appleBlue); locBtn.setOnClickListener(v->openLocationPickerDialog()); add(page,locBtn);
         coordTxt=tv(ar?"لم يتم اختيار الموقع بعد":"No location picked yet",14,Color.DKGRAY,Typeface.BOLD); add(page,coordTxt);
         doorEt=et(ar?"مثال: فيلا 12، الدور الثاني":"Example: Villa 12, second floor"); add(page,label(ar?"تفاصيل الباب / البيت":"Door / home details")); add(page,doorEt);
         add(page,label(ar?"الصور":"Photos"));
         add(page,tv(ar?"اضغط الزر الأخضر لاختيار صور الباب/البيت من المعرض.":"Tap the green button to choose door/home photos from Gallery.",14,Color.DKGRAY,Typeface.NORMAL));
-        Button pick=btn(ar?"اختر الصور من المعرض":"Choose photos from Gallery",green); pick.setOnClickListener(v->pickPhotos()); add(page,pick);
+        Button pick=btn(ar?"اختر الصور من المعرض":"Choose photos from Gallery",appleBlue); pick.setOnClickListener(v->pickPhotos()); add(page,pick);
         photoRow=new LinearLayout(this); photoRow.setOrientation(LinearLayout.HORIZONTAL); photoRow.setPadding(0,dp(8),0,dp(8)); add(page,photoRow); refreshTempPhotos();
-        Button save=btn(ar?"حفظ البطاقة":"Save card",green); save.setOnClickListener(v->saveCard()); add(page,save);
+        Button save=btn(ar?"حفظ البطاقة":"Save card",appleBlue); save.setOnClickListener(v->saveCard()); add(page,save);
     }
-    TextView label(String s){ TextView l=tv(s,14,teal,Typeface.BOLD); l.setPadding(0,dp(18),0,dp(6)); return l; }
+    TextView label(String s){ TextView l=tv(s,15,nearBlack,Typeface.BOLD); l.setPadding(0,dp(18),0,dp(6)); return l; }
 
     void renderCards(){
-        add(page,tv(ar?"البطاقات المحفوظة":"Saved cards",22,Color.rgb(20,30,30),Typeface.BOLD));
+        add(page,hero(ar?"البطاقات المحفوظة":"Saved cards", ar?"اختر بطاقة ثم أرسلها لأي رقم واتساب":"Choose a card and send it to any WhatsApp number"));
         if(cards.isEmpty()){ add(page,tv(ar?"لا توجد بطاقات بعد":"No cards yet",16,Color.GRAY,Typeface.NORMAL)); return; }
         for(Card c: cards) addCardView(c);
     }
 
     void addCardView(Card c){
-        LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(14),dp(14),dp(14),dp(14)); box.setBackground(round(Color.WHITE,dp(20),Color.rgb(225,230,228))); LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2); bp.setMargins(0,0,0,dp(16)); page.addView(box,bp);
-        add(box,tv(c.name,20,teal,Typeface.BOLD)); add(box,tv("📍 https://maps.google.com/?q="+c.lat+","+c.lng,13,Color.DKGRAY,Typeface.NORMAL)); if(c.door.length()>0) add(box,tv("🚪 "+c.door,15,Color.DKGRAY,Typeface.BOLD));
-        Button mapBtn=btn(ar?"افتح الموقع في Google Maps":"Open location in Google Maps",teal); mapBtn.setOnClickListener(v->openMap(c.lat,c.lng,c.name)); add(box,mapBtn);
+        LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(14),dp(14),dp(14),dp(14)); box.setBackground(round(Color.WHITE,dp(26),Color.WHITE)); LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,-2); bp.setMargins(0,0,0,dp(16)); page.addView(box,bp);
+        add(box,tv(c.name,24,nearBlack,Typeface.BOLD)); add(box,tv("📍 https://maps.google.com/?q="+c.lat+","+c.lng,14,softText,Typeface.NORMAL)); if(c.door.length()>0) add(box,tv("🚪 "+c.door,16,nearBlack,Typeface.BOLD));
+        Button mapBtn=btn(ar?"افتح الموقع في Google Maps":"Open location in Google Maps",nearBlack); mapBtn.setOnClickListener(v->openMap(c.lat,c.lng,c.name)); add(box,mapBtn);
         LinearLayout imgs=new LinearLayout(this); imgs.setOrientation(LinearLayout.HORIZONTAL); box.addView(imgs,new LinearLayout.LayoutParams(-1,dp(120)));
         for(String p:c.photos){ ImageView iv=new ImageView(this); iv.setScaleType(ImageView.ScaleType.CENTER_CROP); iv.setImageURI(Uri.parse(p)); LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1); lp.setMargins(dp(4),dp(8),dp(4),dp(8)); imgs.addView(iv,lp); }
-        EditText phone=et(ar?"رقم واتساب لأي شخص بدون حفظ":"WhatsApp number - any person (unsaved)"); phone.setInputType(android.text.InputType.TYPE_CLASS_PHONE); add(box,phone);
-        Button open=btn(ar?"إرسال البطاقة عبر واتساب":"Send card on WhatsApp",green); open.setOnClickListener(v->shareToNumber(c,phone.getText().toString())); add(box,open);
+        add(box,label(ar?"أدخل رقم واتساب":"Add any WhatsApp number"));
+        EditText phone=et(ar?"مثال: 05xxxxxxxx أو +9665xxxxxxxx":"Example: 05xxxxxxxx or +9665xxxxxxxx"); phone.setInputType(android.text.InputType.TYPE_CLASS_PHONE); phone.setSingleLine(true); phone.setTextSize(19); phone.setMinHeight(dp(70)); phone.setPadding(dp(18),dp(14),dp(18),dp(14)); add(box,phone);
+        Button open=btn(ar?"إرسال البطاقة عبر واتساب":"Send card on WhatsApp",appleBlue); open.setOnClickListener(v->shareToNumber(c,phone.getText().toString())); add(box,open);
         Button del=btn(ar?"حذف البطاقة":"Delete card",Color.rgb(190,40,40)); del.setOnClickListener(v->{cards.remove(c); persist(); render();}); add(box,del);
     }
 
@@ -125,7 +129,7 @@ public class MainActivity extends Activity {
         pickerLat=selLat; pickerLng=selLng;
         addDialogMapPicker(box);
         pickerCoordTxt=tv("✅ "+pickerLat+", "+pickerLng,14,Color.DKGRAY,Typeface.BOLD); add(box,pickerCoordTxt);
-        Button save=btn(ar?"حفظ الموقع والرجوع":"Save location and go back",green); save.setOnClickListener(v->{ setSelectedLocation(pickerLat,pickerLng,"Map pin location"); d.dismiss(); }); add(box,save);
+        Button save=btn(ar?"حفظ الموقع والرجوع":"Save location and go back",appleBlue); save.setOnClickListener(v->{ setSelectedLocation(pickerLat,pickerLng,"Map pin location"); d.dismiss(); }); add(box,save);
         Button cancel=btn(ar?"إلغاء":"Cancel",Color.GRAY); cancel.setOnClickListener(v->d.dismiss()); add(box,cancel);
         d.setContentView(box);
         Window w=d.getWindow();
@@ -216,7 +220,7 @@ public class MainActivity extends Activity {
         return null;
     }
     Uri fileProviderUri(Uri u){ if("file".equals(u.getScheme())) return FileProvider.getUriForFile(this,getPackageName()+".fileprovider",new File(u.getPath())); return u; }
-    Uri makeCardImage(Card c)throws Exception{ Bitmap bm=Bitmap.createBitmap(1080,1350,Bitmap.Config.ARGB_8888); Canvas cn=new Canvas(bm); Paint p=new Paint(Paint.ANTI_ALIAS_FLAG); p.setColor(bg); cn.drawRect(0,0,1080,1350,p); p.setColor(teal); cn.drawRoundRect(50,50,1030,260,36,36,p); p.setColor(Color.WHITE); p.setTextSize(62); p.setTypeface(Typeface.DEFAULT_BOLD); cn.drawText(c.name,90,145,p); p.setTextSize(34); cn.drawText("ShareMySpot / شارك موقعي",90,210,p); p.setColor(Color.WHITE); cn.drawRoundRect(50,310,1030,560,28,28,p); p.setColor(Color.rgb(20,30,30)); p.setTextSize(38); cn.drawText("📍 https://maps.google.com/?q="+c.lat+","+c.lng,90,390,p); p.setTextSize(40); if(c.door.length()>0) cn.drawText("🚪 "+c.door,90,470,p); int y=610; for(int i=0;i<Math.min(2,c.photos.size());i++){ Bitmap img=BitmapFactory.decodeStream(getContentResolver().openInputStream(Uri.parse(c.photos.get(i)))); if(img!=null){ Rect dst=new Rect(i==0?70:555,y,i==0?525:1010,y+520); cn.drawBitmap(img,null,dst,p); }} File f=new File(getCacheDir(),"sharemyspot_card.png"); FileOutputStream out=new FileOutputStream(f); bm.compress(Bitmap.CompressFormat.PNG,95,out); out.close(); return FileProvider.getUriForFile(this,getPackageName()+".fileprovider",f); }
+    Uri makeCardImage(Card c)throws Exception{ Bitmap bm=Bitmap.createBitmap(1080,1350,Bitmap.Config.ARGB_8888); Canvas cn=new Canvas(bm); Paint p=new Paint(Paint.ANTI_ALIAS_FLAG); p.setColor(bg); cn.drawRect(0,0,1080,1350,p); p.setColor(nearBlack); cn.drawRoundRect(50,50,1030,260,36,36,p); p.setColor(Color.WHITE); p.setTextSize(62); p.setTypeface(Typeface.DEFAULT_BOLD); cn.drawText(c.name,90,145,p); p.setTextSize(34); cn.drawText("ShareMySpot / شارك موقعي",90,210,p); p.setColor(Color.WHITE); cn.drawRoundRect(50,310,1030,560,28,28,p); p.setColor(Color.rgb(20,30,30)); p.setTextSize(38); cn.drawText("📍 https://maps.google.com/?q="+c.lat+","+c.lng,90,390,p); p.setTextSize(40); if(c.door.length()>0) cn.drawText("🚪 "+c.door,90,470,p); int y=610; for(int i=0;i<Math.min(2,c.photos.size());i++){ Bitmap img=BitmapFactory.decodeStream(getContentResolver().openInputStream(Uri.parse(c.photos.get(i)))); if(img!=null){ Rect dst=new Rect(i==0?70:555,y,i==0?525:1010,y+520); cn.drawBitmap(img,null,dst,p); }} File f=new File(getCacheDir(),"sharemyspot_card.png"); FileOutputStream out=new FileOutputStream(f); bm.compress(Bitmap.CompressFormat.PNG,95,out); out.close(); return FileProvider.getUriForFile(this,getPackageName()+".fileprovider",f); }
 
     void load(){ try{ JSONArray a=new JSONArray(getPreferences(0).getString("cards","[]")); for(int i=0;i<a.length();i++){ JSONObject o=a.getJSONObject(i); Card c=new Card(); c.id=o.getString("id"); c.name=o.getString("name"); c.door=o.optString("door",""); c.address=o.optString("address",""); c.lat=o.optDouble("lat",24.7136); c.lng=o.optDouble("lng",46.6753); JSONArray ps=o.optJSONArray("photos"); if(ps!=null) for(int j=0;j<ps.length();j++) c.photos.add(ps.getString(j)); cards.add(c);} }catch(Exception e){} }
     void persist(){ try{ JSONArray a=new JSONArray(); for(Card c:cards){ JSONObject o=new JSONObject(); o.put("id",c.id);o.put("name",c.name);o.put("door",c.door);o.put("address",c.address);o.put("lat",c.lat);o.put("lng",c.lng); JSONArray ps=new JSONArray(); for(String p:c.photos) ps.put(p); o.put("photos",ps); a.put(o);} getPreferences(0).edit().putString("cards",a.toString()).apply(); }catch(Exception e){} }
