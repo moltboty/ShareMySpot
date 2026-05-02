@@ -7,8 +7,8 @@ android {
         applicationId 'com.sharemyspot'
         minSdk 23
         targetSdk 35
-        versionCode 12
-        versionName '2.1-steps-icon'
+        versionCode 13
+        versionName '2.2-premium-map-buttons'
     }
 }
 

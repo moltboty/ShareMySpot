@@ -39,15 +39,25 @@ public class MainActivity extends Activity {
 
     TextView tv(String s,int sp,int color,int style){ TextView v=new TextView(this); v.setText(s); v.setTextSize(sp); v.setTextColor(color); v.setTypeface(Typeface.create("sans-serif",style)); v.setIncludeFontPadding(true); v.setLineSpacing(dp(2),1.08f); v.setPadding(dp(2),dp(3),dp(2),dp(3)); return v; }
     EditText et(String hint){ EditText e=new EditText(this); e.setHint(hint); e.setHintTextColor(Color.rgb(158,166,170)); e.setTextColor(nearBlack); e.setTextSize(17); e.setTypeface(Typeface.create("sans-serif",Typeface.NORMAL)); e.setSingleLine(false); e.setBackground(round(inputBg, dp(18), inputBg)); e.setPadding(dp(18),dp(13),dp(18),dp(13)); e.setMinHeight(dp(62)); return e; }
-    Button btn(String s,int color){ Button b=new Button(this); b.setText(s); b.setTextColor(Color.WHITE); b.setTextSize(16); b.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL)); b.setAllCaps(false); b.setBackground(round(color, dp(18), color)); b.setMinHeight(dp(56)); b.setPadding(dp(16),dp(9),dp(16),dp(9)); touchScale(b); return b; }
-    Button softBtn(String s,int bgc,int textc){ Button b=btn(s,bgc); b.setTextColor(textc); b.setBackground(round(bgc,dp(18),bgc)); return b; }
-    Button textBtn(String s,int textc){ Button b=softBtn(s,Color.TRANSPARENT,textc); b.setMinHeight(dp(44)); return b; }
+    Button btn(String s,int color){ Button b=new Button(this); b.setText(s); b.setTextColor(Color.WHITE); b.setTextSize(16); b.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL)); b.setAllCaps(false); b.setBackground(button3d(color, dp(18))); b.setMinHeight(dp(60)); b.setPadding(dp(16),dp(9),dp(16),dp(12)); elevate(b,5); touchScale(b); return b; }
+    Button softBtn(String s,int bgc,int textc){ Button b=btn(s,bgc); b.setTextColor(textc); if(bgc==Color.TRANSPARENT) b.setBackground(round(Color.TRANSPARENT,dp(18),Color.TRANSPARENT)); else b.setBackground(button3d(bgc,dp(18))); return b; }
+    Button textBtn(String s,int textc){ Button b=softBtn(s,Color.TRANSPARENT,textc); b.setMinHeight(dp(44)); b.setPadding(dp(12),dp(6),dp(12),dp(6)); return b; }
     GradientDrawable round(int color,int r,int stroke){ GradientDrawable g=new GradientDrawable(); g.setColor(color); g.setCornerRadius(r); if(stroke!=color && color!=Color.TRANSPARENT) g.setStroke(dp(1), stroke); return g; }
+    int blend(int c,int to,float f){ return Color.rgb((int)(Color.red(c)+(Color.red(to)-Color.red(c))*f),(int)(Color.green(c)+(Color.green(to)-Color.green(c))*f),(int)(Color.blue(c)+(Color.blue(to)-Color.blue(c))*f)); }
+    Drawable button3d(int color,int r){
+        int top=blend(color,Color.WHITE,.22f), mid=color, bottom=blend(color,Color.BLACK,.16f), stroke=blend(color,Color.WHITE,.28f), shadow=Color.argb(dark?115:85,0,0,0);
+        GradientDrawable drop=new GradientDrawable(); drop.setColor(shadow); drop.setCornerRadius(r);
+        GradientDrawable base=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{top,mid,bottom}); base.setCornerRadius(r); base.setStroke(dp(1),stroke);
+        GradientDrawable shine=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{Color.argb(120,255,255,255),Color.argb(38,255,255,255),Color.TRANSPARENT}); shine.setCornerRadius(r);
+        LayerDrawable ld=new LayerDrawable(new Drawable[]{drop,base,shine});
+        ld.setLayerInset(0,0,dp(4),0,0); ld.setLayerInset(1,0,0,0,dp(4)); ld.setLayerInset(2,dp(3),dp(3),dp(3),dp(32));
+        return ld;
+    }
     int dp(int v){ return (int)(v*getResources().getDisplayMetrics().density+.5f); }
     void add(ViewGroup p, View v){ LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2); lp.setMargins(0,0,0,dp(12)); p.addView(v,lp); }
     void elevate(View v,int e){ if(Build.VERSION.SDK_INT>=21){ v.setElevation(dp(e)); v.setTranslationZ(dp(1)); } }
     void touchScale(View v){ v.setOnTouchListener((x,e)->{ if(e.getAction()==android.view.MotionEvent.ACTION_DOWN) x.animate().scaleX(.98f).scaleY(.98f).setDuration(90).start(); if(e.getAction()==android.view.MotionEvent.ACTION_UP||e.getAction()==android.view.MotionEvent.ACTION_CANCEL) x.animate().scaleX(1f).scaleY(1f).setDuration(120).start(); return false; }); }
-    TextView hero(String title,String sub){ TextView v=tv(title+"\n"+sub,25,nearBlack,Typeface.BOLD); v.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); v.setPadding(dp(18),dp(22),dp(18),dp(22)); v.setBackground(round(cardBg,dp(24),cardBg)); elevate(v,2); return v; }
+    TextView hero(String title,String sub){ String text=(sub==null||sub.length()==0)?title:title+"\n"+sub; TextView v=tv(text,25,nearBlack,Typeface.BOLD); v.setTextAlignment(View.TEXT_ALIGNMENT_CENTER); v.setPadding(dp(18),dp(22),dp(18),dp(22)); v.setBackground(round(cardBg,dp(24),cardBg)); elevate(v,2); return v; }
     LinearLayout panel(){ LinearLayout x=new LinearLayout(this); x.setOrientation(LinearLayout.VERTICAL); x.setPadding(dp(18),dp(18),dp(18),dp(18)); x.setBackground(round(cardBg,dp(24),cardBg)); elevate(x,2); touchScale(x); return x; }
     void addPanel(ViewGroup p, View v){ LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2); lp.setMargins(0,0,0,dp(18)); p.addView(v,lp); }
     void applyTheme(){
@@ -83,7 +93,7 @@ public class MainActivity extends Activity {
     }
 
     void renderCreate(){
-        add(page,hero(ar?"أنشئ بطاقة موقعك":"Create your location card", ar?"٤ خطوات واضحة وجاهزة للواتساب":"4 clear steps, ready for WhatsApp"));
+        add(page,hero(ar?"عبي الكرت لإنشاء بطاقتك الأولى لعنوان المنزل او العمل":"Fill the card to create your first home or work address", ""));
 
         add(page,stepTitle(1, ar?"اسم البطاقة":"Card title"));
         nameEt=et(ar?"مثال: البيت / العمل":"Example: Home / Work"); add(page,nameEt);
@@ -171,8 +181,7 @@ public class MainActivity extends Activity {
         Dialog d=new Dialog(this);
         LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setPadding(dp(18),dp(18),dp(18),dp(18)); box.setBackgroundColor(bg);
         add(box,tv(ar?"حدد موقع البيت":"Pick home location",24,nearBlack,Typeface.BOLD));
-        add(box,tv(ar?"اضغط موقعي الحالي أو حرّك الخريطة، ثم اضغط حفظ الموقع.":"Tap Current location or move the map, then tap Save location.",14,softText,Typeface.NORMAL));
-        Button gps=softBtn(ar?"موقعي الحالي":"Use my current location",mintSoft,mintDeep); gps.setOnClickListener(v->useCurrentGpsInPicker()); add(box,gps);
+        add(box,tv(ar?"حرّك الخريطة أو اضغط زر تحديد الموقع داخل الخريطة، ثم اضغط حفظ الموقع.":"Move the map or tap the GPS circle inside the map, then tap Save location.",14,softText,Typeface.NORMAL));
         pickerLat=selLat; pickerLng=selLng;
         addDialogMapPicker(box);
         pickerCoordTxt=tv("✅ "+pickerLat+", "+pickerLng,14,softText,Typeface.BOLD); add(box,pickerCoordTxt);
@@ -206,6 +215,8 @@ public class MainActivity extends Activity {
         "</body></html>";
         pickerWeb.loadDataWithBaseURL("https://openstreetmap.org/",html,"text/html","UTF-8",null);
         frame.addView(pickerWeb,new FrameLayout.LayoutParams(-1,-1));
+        Button gps=softBtn("⌖",cardBg,mintDeep); gps.setTextSize(24); gps.setMinHeight(dp(52)); gps.setPadding(0,0,0,dp(3)); gps.setBackground(button3d(cardBg,dp(999))); gps.setOnClickListener(v->useCurrentGpsInPicker());
+        FrameLayout.LayoutParams gp=new FrameLayout.LayoutParams(dp(54),dp(54),Gravity.BOTTOM|Gravity.RIGHT); gp.setMargins(0,0,dp(14),dp(14)); frame.addView(gps,gp);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,0,1); lp.setMargins(0,dp(8),0,dp(8));
         parent.addView(frame,lp);
     }
