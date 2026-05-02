@@ -83,19 +83,33 @@ public class MainActivity extends Activity {
     }
 
     void renderCreate(){
-        add(page,hero(ar?"أنشئ بطاقة موقعك":"Create your location card", ar?"بسيطة، واضحة، وجاهزة للواتساب":"Clean, calm, ready for WhatsApp"));
-        nameEt=et(ar?"مثال: البيت / العمل":"Example: Home / Work"); add(page,label(ar?"اسم البطاقة":"Card title")); add(page,nameEt);
-        add(page,label(ar?"الموقع":"Location"));
+        add(page,hero(ar?"أنشئ بطاقة موقعك":"Create your location card", ar?"٤ خطوات واضحة وجاهزة للواتساب":"4 clear steps, ready for WhatsApp"));
+
+        add(page,stepTitle(1, ar?"اسم البطاقة":"Card title"));
+        nameEt=et(ar?"مثال: البيت / العمل":"Example: Home / Work"); add(page,nameEt);
+
+        add(page,stepTitle(2, ar?"الموقع":"Location"));
         Button locBtn=btn(ar?"افتح الخريطة / حدد موقعي":"Find my location / Pick on map",mintDeep); locBtn.setOnClickListener(v->openLocationPickerDialog()); add(page,locBtn);
         coordTxt=tv(ar?"لم يتم اختيار الموقع بعد":"No location picked yet",14,softText,Typeface.NORMAL); add(page,coordTxt);
-        doorEt=et(ar?"مثال: فيلا 12، الدور الثاني":"Example: Villa 12, second floor"); add(page,label(ar?"تفاصيل الباب / البيت":"Door / home details")); add(page,doorEt);
-        add(page,label(ar?"الصور":"Photos"));
+
+        add(page,stepTitle(3, ar?"تفاصيل الباب / البيت":"Door / home details"));
+        doorEt=et(ar?"مثال: فيلا 12، الدور الثاني":"Example: Villa 12, second floor"); add(page,doorEt);
+
+        add(page,stepTitle(4, ar?"الصور":"Photos"));
         add(page,tv(ar?"اضغط الزر الأخضر لاختيار صور الباب/البيت من المعرض.":"Tap the green button to choose door/home photos from Gallery.",14,softText,Typeface.NORMAL));
         Button pick=softBtn(ar?"اختر الصور من المعرض":"Choose photos from Gallery",mintSoft,mintDeep); pick.setOnClickListener(v->pickPhotos()); add(page,pick);
         photoRow=new LinearLayout(this); photoRow.setOrientation(LinearLayout.HORIZONTAL); photoRow.setPadding(0,dp(8),0,dp(8)); add(page,photoRow); refreshTempPhotos();
+
         Button save=btn(ar?"حفظ البطاقة":"Save card",mintDeep); save.setOnClickListener(v->saveCard()); add(page,save);
     }
     TextView label(String s){ TextView l=tv(s,14,nearBlack,Typeface.BOLD); l.setPadding(0,dp(18),0,dp(6)); return l; }
+    LinearLayout stepTitle(int n,String title){
+        LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(0,dp(18),0,dp(6));
+        TextView num=tv(String.valueOf(n),18,Color.rgb(232,64,64),Typeface.BOLD); num.setGravity(Gravity.CENTER); num.setBackground(round(Color.TRANSPARENT,dp(999),Color.rgb(232,64,64)));
+        LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(dp(34),dp(34)); np.setMargins(0,0,dp(10),0); row.addView(num,np);
+        TextView t=tv(title,15,nearBlack,Typeface.BOLD); row.addView(t,new LinearLayout.LayoutParams(0,-2,1));
+        return row;
+    }
 
     void renderCards(){
         add(page,hero(ar?"البطاقات المحفوظة":"Saved cards", ar?"اختر بطاقة ثم أرسلها لأي رقم واتساب":"Choose a card and send it to any WhatsApp number"));
